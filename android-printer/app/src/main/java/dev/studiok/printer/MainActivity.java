@@ -18,9 +18,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -45,13 +43,12 @@ public class MainActivity extends Activity {
     private static final String KEY_MAC = "last_mac";
     private static final String KEY_TYPE = "last_type";
 
-    // Template editor keys (stored in SharedPreferences)
-    private static final String KEY_TPL_LOGO_SCALE = "tpl_logo_scale";
-    private static final String KEY_TPL_LOGO_Y = "tpl_logo_y";
-    private static final String KEY_TPL_NAME_Y = "tpl_name_y";
-    private static final String KEY_TPL_NAME_FONT_MULT = "tpl_name_font_mult";
-    private static final String KEY_TPL_ROLE_Y = "tpl_role_y";
-    private static final String KEY_TPL_ROLE_FONT_MULT = "tpl_role_font_mult";
+    private static final int REQ_TEMPLATE_EDITOR = 100;
+
+    // New drag-and-drop template keys (tpl2_ prefix)
+    private static final String P_LOGO = "tpl2_logo_";
+    private static final String P_NAME = "tpl2_name_";
+    private static final String P_ROLE = "tpl2_role_";
     private static final double LABEL_WIDTH_MM = 50;
     private static final double LABEL_HEIGHT_MM = 20;
     private static final int LABEL_GAP_TYPE = 2;
@@ -81,13 +78,10 @@ public class MainActivity extends Activity {
     private Intent pendingLaunchIntent;
     private Bitmap logoMark;
 
-    // Editable template parameters (in mm / multipliers).
-    private float tplLogoScale = 1.0f;
-    private float tplLogoYOffsetMm = 0.0f;
-    private float tplNameYOffsetMm = 0.0f;
-    private float tplNameFontMultiplier = 1.0f;
-    private float tplRoleYOffsetMm = 0.0f;
-    private float tplRoleFontMultiplier = 1.0f;
+    // Drag-and-drop template elements (loaded from SharedPreferences)
+    private TemplateElement tplLogo = TemplateElement.defaultLogo();
+    private TemplateElement tplName = TemplateElement.defaultName();
+    private TemplateElement tplRole = TemplateElement.defaultRole();
 
     private final LPAPI.Callback callback = new LPAPI.Callback() {
         @Override
@@ -455,23 +449,19 @@ public class MainActivity extends Activity {
         api.startJob(LABEL_WIDTH_MM, LABEL_HEIGHT_MM, 0);
 
         if (logoMark != null) {
-            // Left column (logo only)
-            api.drawBitmap(
-                    logoMark,
-                    1.5,
-                    2 + tplLogoYOffsetMm,
-                    21 * tplLogoScale,
-                    16 * tplLogoScale
-            );
+            api.drawBitmap(logoMark, tplLogo.xMm, tplLogo.yMm, tplLogo.wMm, tplLogo.hMm);
         }
 
         api.setItemHorizontalAlignment(0);
         api.setItemVerticalAlignment(0);
-        double fontMm = nameFontMm(name) * tplNameFontMultiplier;
 
-        // Right column (name on top + role tag below)
-        api.drawTextRegular(name, 25, 2 + tplNameYOffsetMm, 23, 9, fontMm, 1);
-        api.drawTextRegular(role, 25, 12 + tplRoleYOffsetMm, 23, 6, 3.0 * tplRoleFontMultiplier, 0);
+        // Use saved font or auto-size based on name length
+        double nameFontMm = tplName.fontMm > 0 ? tplName.fontMm : nameFontMm(name);
+        api.drawTextRegular(name, tplName.xMm, tplName.yMm, tplName.wMm, tplName.hMm, nameFontMm, 1);
+
+        double roleFontMm = tplRole.fontMm > 0 ? tplRole.fontMm : 3.0;
+        api.drawTextRegular(role, tplRole.xMm, tplRole.yMm, tplRole.wMm, tplRole.hMm, roleFontMm, 0);
+
         return api.commitJob();
     }
 
@@ -495,140 +485,66 @@ public class MainActivity extends Activity {
     private void updatePreview(String name, String role) {
         if (previewImage == null || logoMark == null) return;
 
-        int previewW = 400; // px
-        int previewH = 160; // px (50x20mm @ 8px/mm)
-        float sx = previewW / (float) LABEL_WIDTH_MM; // 8
-        float sy = previewH / (float) LABEL_HEIGHT_MM; // 8
+        int previewW = 400;
+        int previewH = 160;
+        float sx = previewW / (float) LABEL_WIDTH_MM;
+        float sy = previewH / (float) LABEL_HEIGHT_MM;
 
         Bitmap preview = Bitmap.createBitmap(previewW, previewH, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(preview);
         canvas.drawColor(Color.WHITE);
 
-        Paint line = new Paint();
-        line.setColor(Color.parseColor("#dddddd"));
-        // Column divider at x=25mm
-        canvas.drawLine(25f * sx, 0, 25f * sx, previewH, line);
-
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-        paint.setAntiAlias(true);
-
-        // Logo bitmap
-        float logoY = 2f + tplLogoYOffsetMm;
-        float logoW = 21f * tplLogoScale;
-        float logoH = 16f * tplLogoScale;
-
+        // Logo
         android.graphics.RectF dst = new android.graphics.RectF(
-                1.5f * sx,
-                logoY * sy,
-                (1.5f + logoW) * sx,
-                (logoY + logoH) * sy
-        );
+                tplLogo.xMm * sx, tplLogo.yMm * sy,
+                (tplLogo.xMm + tplLogo.wMm) * sx, (tplLogo.yMm + tplLogo.hMm) * sy);
         canvas.drawBitmap(logoMark, null, dst, null);
 
-        // Text (approximate baseline positioning)
-        float textX = 25f * sx;
-        double fontMm = nameFontMm(name) * tplNameFontMultiplier;
-        float nameFontPx = (float) (fontMm * sy);
-        paint.setTextSize(nameFontPx);
-        canvas.drawText(name, textX, (2f + tplNameYOffsetMm) * sy + nameFontPx, paint);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.BLACK);
 
-        float roleFontPx = (3.0f * tplRoleFontMultiplier) * sy;
-        paint.setTextSize(roleFontPx);
-        canvas.drawText(role, textX, (12f + tplRoleYOffsetMm) * sy + roleFontPx, paint);
+        // Name
+        double nf = tplName.fontMm > 0 ? tplName.fontMm : nameFontMm(name);
+        paint.setTextSize((float) (nf * sy));
+        canvas.drawText(name, tplName.xMm * sx, tplName.yMm * sy + (float)(nf * sy), paint);
+
+        // Role
+        double rf = tplRole.fontMm > 0 ? tplRole.fontMm : 3.0;
+        paint.setTextSize((float) (rf * sy));
+        canvas.drawText(role, tplRole.xMm * sx, tplRole.yMm * sy + (float)(rf * sy), paint);
 
         previewImage.setImageBitmap(preview);
     }
 
     private void loadTemplate() {
         if (prefs == null) return;
-
-        tplLogoScale = prefs.getFloat(KEY_TPL_LOGO_SCALE, 1.0f);
-        tplLogoYOffsetMm = prefs.getFloat(KEY_TPL_LOGO_Y, 0.0f);
-        tplNameYOffsetMm = prefs.getFloat(KEY_TPL_NAME_Y, 0.0f);
-        tplNameFontMultiplier = prefs.getFloat(KEY_TPL_NAME_FONT_MULT, 1.0f);
-        tplRoleYOffsetMm = prefs.getFloat(KEY_TPL_ROLE_Y, 0.0f);
-        tplRoleFontMultiplier = prefs.getFloat(KEY_TPL_ROLE_FONT_MULT, 1.0f);
+        tplLogo = loadElem(P_LOGO, TemplateElement.defaultLogo());
+        tplName = loadElem(P_NAME, TemplateElement.defaultName());
+        tplRole = loadElem(P_ROLE, TemplateElement.defaultRole());
     }
 
-    private void saveTemplate() {
-        if (prefs == null) return;
-
-        prefs.edit()
-                .putFloat(KEY_TPL_LOGO_SCALE, tplLogoScale)
-                .putFloat(KEY_TPL_LOGO_Y, tplLogoYOffsetMm)
-                .putFloat(KEY_TPL_NAME_Y, tplNameYOffsetMm)
-                .putFloat(KEY_TPL_NAME_FONT_MULT, tplNameFontMultiplier)
-                .putFloat(KEY_TPL_ROLE_Y, tplRoleYOffsetMm)
-                .putFloat(KEY_TPL_ROLE_FONT_MULT, tplRoleFontMultiplier)
-                .apply();
-    }
-
-    private void resetTemplateDefaults() {
-        tplLogoScale = 1.0f;
-        tplLogoYOffsetMm = 0.0f;
-        tplNameYOffsetMm = 0.0f;
-        tplNameFontMultiplier = 1.0f;
-        tplRoleYOffsetMm = 0.0f;
-        tplRoleFontMultiplier = 1.0f;
+    private TemplateElement loadElem(String prefix, TemplateElement def) {
+        float x = prefs.getFloat(prefix + "x", def.xMm);
+        float y = prefs.getFloat(prefix + "y", def.yMm);
+        float w = prefs.getFloat(prefix + "w", def.wMm);
+        float h = prefs.getFloat(prefix + "h", def.hMm);
+        float f = prefs.getFloat(prefix + "f", def.fontMm);
+        return new TemplateElement(def.kind, x, y, w, h, f);
     }
 
     private void openTemplateEditor() {
-        if (prefs == null) return;
-
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View v = inflater.inflate(R.layout.template_editor, null);
-
-        EditText etLogoScale = v.findViewById(R.id.et_logo_scale);
-        EditText etLogoY = v.findViewById(R.id.et_logo_y);
-        EditText etNameY = v.findViewById(R.id.et_name_y);
-        EditText etNameFontMult = v.findViewById(R.id.et_name_font_mult);
-        EditText etRoleY = v.findViewById(R.id.et_role_y);
-        EditText etRoleFontMult = v.findViewById(R.id.et_role_font_mult);
-
-        etLogoScale.setText(String.valueOf(tplLogoScale));
-        etLogoY.setText(String.valueOf(tplLogoYOffsetMm));
-        etNameY.setText(String.valueOf(tplNameYOffsetMm));
-        etNameFontMult.setText(String.valueOf(tplNameFontMultiplier));
-        etRoleY.setText(String.valueOf(tplRoleYOffsetMm));
-        etRoleFontMult.setText(String.valueOf(tplRoleFontMultiplier));
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("Template (50x20mm)")
-                .setView(v)
-                .setPositiveButton("Save", (d, w) -> {
-                    try {
-                        tplLogoScale = clampFloat(parseFloat(etLogoScale.getText().toString()), 0.7f, 1.3f);
-                        tplLogoYOffsetMm = clampFloat(parseFloat(etLogoY.getText().toString()), -2f, 2f);
-                        tplNameYOffsetMm = clampFloat(parseFloat(etNameY.getText().toString()), -2f, 2f);
-                        tplNameFontMultiplier = clampFloat(parseFloat(etNameFontMult.getText().toString()), 0.8f, 1.2f);
-                        tplRoleYOffsetMm = clampFloat(parseFloat(etRoleY.getText().toString()), -2f, 2f);
-                        tplRoleFontMultiplier = clampFloat(parseFloat(etRoleFontMult.getText().toString()), 0.8f, 1.2f);
-                    } catch (Exception ignored) {
-                        // Keep old template values if parsing fails.
-                    }
-
-                    saveTemplate();
-                    updatePreview(getString(R.string.test_name), "FOUNDER");
-                })
-                .setNeutralButton("Reset", (d, w) -> {
-                    resetTemplateDefaults();
-                    saveTemplate();
-                    updatePreview(getString(R.string.test_name), "FOUNDER");
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .create();
-
-        dialog.show();
+        Intent intent = new Intent(this, TemplateEditorActivity.class);
+        startActivityForResult(intent, REQ_TEMPLATE_EDITOR);
     }
 
-    private float parseFloat(String v) {
-        if (TextUtils.isEmpty(v)) return 0f;
-        return Float.parseFloat(v);
-    }
-
-    private float clampFloat(float v, float min, float max) {
-        return Math.max(min, Math.min(max, v));
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_TEMPLATE_EDITOR) {
+            // Reload template positions after editor closes
+            loadTemplate();
+            updatePreview(getString(R.string.test_name), "FOUNDER");
+        }
     }
 
     private String normalizeName(String rawName, boolean test) {
