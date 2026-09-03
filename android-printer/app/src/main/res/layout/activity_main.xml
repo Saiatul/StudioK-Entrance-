@@ -6,14 +6,31 @@
     android:orientation="vertical"
     android:padding="28dp">
 
-    <TextView
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="@string/brand"
-        android:textColor="@color/accent"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="@string/brand"
+            android:textColor="@color/accent"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/settings"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_settings" />
+    </RelativeLayout>
 
     <TextView
         android:id="@+id/statusTitle"
@@ -57,57 +74,13 @@
         android:layout_weight="1" />
 
     <Button
-        android:id="@+id/btnConnect"
+        android:id="@+id/btnDone"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:background="@drawable/btn_accent"
-        android:text="@string/connect"
+        android:text="@string/done"
         android:textAllCaps="false"
         android:textColor="@color/cream"
         android:textSize="17sp"
         android:textStyle="bold" />
-
-    <Button
-        android:id="@+id/btnTest"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/btn_panel"
-        android:text="@string/print_test"
-        android:textAllCaps="false"
-        android:textColor="@color/cream"
-        android:textSize="17sp" />
-
-    <Button
-        android:id="@+id/btnEditTemplate"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/btn_panel"
-        android:text="@string/edit_template"
-        android:textAllCaps="false"
-        android:textColor="@color/cream"
-        android:textSize="17sp" />
-
-    <Button
-        android:id="@+id/btnSetServer"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/btn_panel"
-        android:text="@string/set_server"
-        android:textAllCaps="false"
-        android:textColor="@color/cream"
-        android:textSize="17sp" />
-
-    <Button
-        android:id="@+id/btnDisconnect"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/btn_panel"
-        android:text="@string/disconnect"
-        android:textAllCaps="false"
-        android:textColor="@color/cream"
-        android:textSize="17sp" />
 </LinearLayout>

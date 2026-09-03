@@ -18,8 +18,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.view.View;
-import android.widget.EditText;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -46,12 +44,13 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
+    public static final String EXTRA_ACTION = "internal_action";
+
     private static final String PREFS = "studiok.printer";
     private static final String KEY_NAME = "last_name";
     private static final String KEY_MAC = "last_mac";
     private static final String KEY_TYPE = "last_type";
 
-    private static final int REQ_TEMPLATE_EDITOR = 100;
     private static final String KEY_SERVER_URL = "server_url";
     private static final String DEFAULT_SERVER = "https://studiok-entrance-production.up.railway.app";
     private static final long POLL_INTERVAL_MS = 3000;
@@ -77,9 +76,6 @@ public class MainActivity extends Activity {
     private TextView statusTitle;
     private TextView statusDetail;
     private ImageView previewImage;
-    private Button btnConnect;
-    private Button btnTest;
-    private Button btnDisconnect;
 
     private String pendingGuestName;
     private String pendingRole;
@@ -180,29 +176,34 @@ public class MainActivity extends Activity {
         statusTitle = findViewById(R.id.statusTitle);
         statusDetail = findViewById(R.id.statusDetail);
         previewImage = findViewById(R.id.previewImage);
-        btnConnect = findViewById(R.id.btnConnect);
-        btnTest = findViewById(R.id.btnTest);
-        Button btnEditTemplate = findViewById(R.id.btnEditTemplate);
-        btnDisconnect = findViewById(R.id.btnDisconnect);
+        Button btnDone = findViewById(R.id.btnDone);
 
-        Button btnSetServer = findViewById(R.id.btnSetServer);
-
-        btnConnect.setOnClickListener(v -> startConnect(true));
-        btnTest.setOnClickListener(v -> printBadge(getString(R.string.test_name), "Founder", true));
-        btnEditTemplate.setOnClickListener(v -> openTemplateEditor());
-        btnSetServer.setOnClickListener(v -> showServerUrlDialog());
-        btnDisconnect.setOnClickListener(v -> disconnectPrinter());
+        findViewById(R.id.btnSettings).setOnClickListener(v ->
+                startActivity(new Intent(this, SettingsActivity.class)));
+        btnDone.setOnClickListener(v -> {
+            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(DEFAULT_SERVER));
+            startActivity(browser);
+        });
 
         pendingLaunchIntent = getIntent();
         requestPrinterPermissions();
         refreshStatus();
         loadTemplate();
         updatePreview(getString(R.string.test_name), "FOUNDER");
+        handleInternalAction(getIntent());
 
         // Auto-start polling if printer was previously connected
         if (isPrinterConnected()) {
             startPolling();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadTemplate();
+        updatePreview(getString(R.string.test_name), "FOUNDER");
+        refreshStatus();
     }
 
     @Override
@@ -212,6 +213,7 @@ public class MainActivity extends Activity {
         pendingLaunchIntent = intent;
         if (hasPrinterPermissions()) {
             handleIntent(intent);
+            handleInternalAction(intent);
         }
     }
 
@@ -275,6 +277,27 @@ public class MainActivity extends Activity {
             String name = uri.getQueryParameter("name");
             String role = uri.getQueryParameter("role");
             printBadge(name, role, false);
+        }
+    }
+
+    private void handleInternalAction(Intent intent) {
+        if (intent == null) {
+            return;
+        }
+
+        String action = intent.getStringExtra(EXTRA_ACTION);
+        if (action == null) {
+            return;
+        }
+
+        intent.removeExtra(EXTRA_ACTION);
+
+        if (SettingsActivity.ACTION_CONNECT.equals(action)) {
+            startConnect(true);
+        } else if (SettingsActivity.ACTION_TEST.equals(action)) {
+            printBadge(getString(R.string.test_name), "Founder", true);
+        } else if (SettingsActivity.ACTION_DISCONNECT.equals(action)) {
+            disconnectPrinter();
         }
     }
 
@@ -602,42 +625,6 @@ public class MainActivity extends Activity {
         float h = prefs.getFloat(prefix + "h", def.hMm);
         float f = prefs.getFloat(prefix + "f", def.fontMm);
         return new TemplateElement(def.kind, x, y, w, h, f);
-    }
-
-    private void openTemplateEditor() {
-        Intent intent = new Intent(this, TemplateEditorActivity.class);
-        startActivityForResult(intent, REQ_TEMPLATE_EDITOR);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_TEMPLATE_EDITOR) {
-            // Reload template positions after editor closes
-            loadTemplate();
-            updatePreview(getString(R.string.test_name), "FOUNDER");
-        }
-    }
-
-    private void showServerUrlDialog() {
-        String current = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER);
-        EditText input = new EditText(this);
-        input.setText(current);
-        input.setTextColor(getResources().getColor(R.color.cream));
-        input.setSingleLine();
-
-        new AlertDialog.Builder(this)
-                .setTitle("Server URL")
-                .setMessage("Enter the website URL (e.g. https://studiok-entrance-production.up.railway.app)")
-                .setView(input)
-                .setPositiveButton("Save", (d, w) -> {
-                    String url = input.getText().toString().trim();
-                    if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
-                    prefs.edit().putString(KEY_SERVER_URL, url).apply();
-                    toast("Server: " + url);
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
     }
 
     private String normalizeName(String rawName, boolean test) {

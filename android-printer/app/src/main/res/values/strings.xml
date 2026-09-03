@@ -23,4 +23,8 @@
     <string name="test_name">TEST PRINT</string>
     <string name="edit_template">Edit template</string>
     <string name="set_server">Set server URL</string>
+    <string name="settings">Settings</string>
+    <string name="settings_hint">Printer setup and template options</string>
+    <string name="done">Done</string>
+    <string name="back">Back</string>
 </resources>
