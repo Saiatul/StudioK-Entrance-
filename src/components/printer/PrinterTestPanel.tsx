@@ -44,7 +44,7 @@ export function PrinterTestPanel() {
       await getPrintService().connect(settings.adapterId);
       setMessage(
         nativeApp
-          ? "Opened the studioK Printer app. Connect the SEZNIK there, then print a test badge."
+          ? "Printer marked as ready. Make sure the studioK Printer app is running on the tablet with SEZNIK connected."
           : "Printer connected. Print a test label before using registration.",
       );
     } catch (err) {
@@ -77,7 +77,7 @@ export function PrinterTestPanel() {
       setVerified(true);
       setMessage(
         nativeApp
-          ? "Sent a 50mm × 20mm test badge to the studioK Printer app. Confirm it comes out of the SEZNIK."
+          ? "Test badge queued. The printer app will pick it up and print automatically."
             : "Test label sent. Confirm the physical 50mm × 20mm print before using the desk flow.",
       );
     } catch (err) {
@@ -184,7 +184,7 @@ export function PrinterTestPanel() {
 
       <div className="space-y-3">
         <Button onClick={connect} loading={busy === "connect"}>
-          {nativeApp ? "Open Printer App" : "Connect Printer"}
+          {nativeApp ? "Mark Printer Ready" : "Connect Printer"}
         </Button>
         <Button
           variant="ghost"
