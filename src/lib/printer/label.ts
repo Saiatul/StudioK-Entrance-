@@ -1,5 +1,4 @@
 import {
-  COMPANY_NAME,
   LABEL_HEIGHT_PX,
   LABEL_WIDTH_PX,
   type RasterLabel,
@@ -8,8 +7,17 @@ import { packMonoBitmap } from "@/lib/printer/raster";
 
 export type LabelContent = {
   name: string;
-  subtitle?: string;
+  role?: string;
 };
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Unable to load studioK mark."));
+    image.src = src;
+  });
+}
 
 function fitName(
   ctx: CanvasRenderingContext2D,
@@ -17,8 +25,8 @@ function fitName(
   maxWidth: number,
   maxHeight: number,
 ): { fontSize: number; lines: string[] } {
-  const minFont = 18;
-  const maxFont = Math.min(64, maxHeight);
+  const minFont = 16;
+  const maxFont = Math.min(42, maxHeight);
   let best = minFont;
 
   const trySize = (fontSize: number, lines: string[]) => {
@@ -71,50 +79,7 @@ function wrapLine(
   }
 
   if (current) lines.push(current);
-  return lines.slice(0, 3);
-}
-
-function drawMonogram(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-) {
-  ctx.save();
-  ctx.fillStyle = "#000000";
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = Math.max(2, size * 0.08);
-
-  const radius = 4;
-  roundRect(ctx, x, y, size, size, radius);
-  ctx.stroke();
-
-  ctx.font = `800 ${Math.round(size * 0.42)}px Arial, Helvetica, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("SK", x + size / 2, y + size / 2 + 1);
-  ctx.restore();
-}
-
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
+  return lines.slice(0, 2);
 }
 
 export async function renderLabelRaster(
@@ -136,37 +101,39 @@ export async function renderLabelRaster(
   ctx.fillStyle = "#000000";
   ctx.imageSmoothingEnabled = false;
 
-  const brandWidth = 108;
-  const nameAreaWidth = width - brandWidth - 16;
+  const columnSplit = Math.round(width * 0.46);
+  const mark = await loadImage("/branding/studiok-mark.png");
+  const markWidth = columnSplit - 12;
+  const markHeight = Math.round(markWidth * (mark.height / mark.width));
+  ctx.drawImage(
+    mark,
+    6,
+    Math.round((height - markHeight) / 2),
+    markWidth,
+    markHeight,
+  );
+
+  const textX = columnSplit + 6;
+  const textWidth = width - textX - 8;
   const name = content.name.trim().toUpperCase() || "GUEST";
-  const fitted = fitName(ctx, name, nameAreaWidth, height - 28);
+  const role = (content.role || "").trim().toUpperCase();
+  const nameHeight = role ? Math.round(height * 0.58) : height - 16;
+  const fitted = fitName(ctx, name, textWidth, nameHeight);
 
   ctx.font = `700 ${fitted.fontSize}px Arial, Helvetica, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  const lineHeight = fitted.fontSize * 1.05;
-  const blockHeight = fitted.lines.length * lineHeight;
-  const startY = Math.round(height * 0.42 - blockHeight / 2);
-
-  fitted.lines.forEach((line, index) => {
-    ctx.fillText(line, 8 + nameAreaWidth / 2, startY + index * lineHeight + lineHeight / 2);
-  });
-
-  if (content.subtitle) {
-    ctx.font = "600 16px Arial, Helvetica, sans-serif";
-    ctx.fillText(content.subtitle.toUpperCase(), 8 + nameAreaWidth / 2, startY + blockHeight + 18);
-  }
-
-  const logoSize = 42;
-  const logoX = width - brandWidth + 8;
-  const logoY = height - logoSize - 28;
-  drawMonogram(ctx, logoX, logoY, logoSize);
-
-  ctx.font = "800 13px Arial, Helvetica, sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText(COMPANY_NAME, logoX, logoY + logoSize + 6);
+
+  const lineHeight = fitted.fontSize * 1.08;
+  fitted.lines.forEach((line, index) => {
+    ctx.fillText(line, textX, 10 + index * lineHeight);
+  });
+
+  if (role) {
+    ctx.font = "600 18px Arial, Helvetica, sans-serif";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(role, textX, height - 10);
+  }
 
   const image = ctx.getImageData(0, 0, width, height);
   const packed = packMonoBitmap(image.data, width, height);
@@ -182,6 +149,6 @@ export async function renderLabelRaster(
 export function renderTestLabelRaster(): Promise<RasterLabel> {
   return renderLabelRaster({
     name: "TEST PRINT",
-    subtitle: "SEZNIK LD0801  50mm x 25mm",
+    role: "Founder",
   });
 }

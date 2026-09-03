@@ -1,4 +1,9 @@
-import { HOSTS, type FieldErrors, type RegistrationInput } from "@/types/registration";
+import {
+  HOSTS,
+  ROLES,
+  type FieldErrors,
+  type RegistrationInput,
+} from "@/types/registration";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DIAL_PATTERN = /^\+\d{1,4}$/;
@@ -18,6 +23,7 @@ export function validateRegistration(
   const mobile = typeof input.mobile === "string" ? input.mobile.trim() : "";
   const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   const host = typeof input.host === "string" ? input.host.trim() : "";
+  const role = typeof input.role === "string" ? input.role.trim() : "";
   const legalAccepted = input.legal_accepted === true;
 
   if (!name) {
@@ -43,6 +49,10 @@ export function validateRegistration(
     errors.host = "Please select a host.";
   }
 
+  if (!role || !ROLES.includes(role as (typeof ROLES)[number])) {
+    errors.role = "Please select a role.";
+  }
+
   if (!legalAccepted) {
     errors.legal =
       "You must agree to the Terms & Conditions, Privacy Policy and Liability Waiver.";
@@ -60,6 +70,7 @@ export function validateRegistration(
       mobile,
       email,
       host,
+      role,
       legal_accepted: true,
     },
   };

@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,6 +26,8 @@ import com.dothantech.printer.IDzPrinter.PrinterState;
 import com.dothantech.printer.IDzPrinter.PrintProgress;
 import com.dothantech.printer.IDzPrinter.ProgressInfo;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -54,10 +58,12 @@ public class MainActivity extends Activity {
     private Button btnDisconnect;
 
     private String pendingGuestName;
+    private String pendingRole;
     private boolean pendingTest;
     private boolean pendingPicker;
     private boolean connecting;
     private Intent pendingLaunchIntent;
+    private Bitmap logoMark;
 
     private final LPAPI.Callback callback = new LPAPI.Callback() {
         @Override
@@ -101,6 +107,7 @@ public class MainActivity extends Activity {
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         printerAdapter = new PrinterListAdapter(this);
         api = LPAPI.Factory.createInstance(callback);
+        logoMark = loadLogoMark();
 
         statusTitle = findViewById(R.id.statusTitle);
         statusDetail = findViewById(R.id.statusDetail);
@@ -109,7 +116,7 @@ public class MainActivity extends Activity {
         btnDisconnect = findViewById(R.id.btnDisconnect);
 
         btnConnect.setOnClickListener(v -> startConnect(true));
-        btnTest.setOnClickListener(v -> printBadge(getString(R.string.test_name), true));
+        btnTest.setOnClickListener(v -> printBadge(getString(R.string.test_name), "Founder", true));
         btnDisconnect.setOnClickListener(v -> disconnectPrinter());
 
         pendingLaunchIntent = getIntent();
@@ -167,12 +174,13 @@ public class MainActivity extends Activity {
             return;
         }
         if ("test".equals(host)) {
-            printBadge(getString(R.string.test_name), true);
+            printBadge(getString(R.string.test_name), "Founder", true);
             return;
         }
         if ("print".equals(host)) {
             String name = uri.getQueryParameter("name");
-            printBadge(name, false);
+            String role = uri.getQueryParameter("role");
+            printBadge(name, role, false);
         }
     }
 
@@ -351,6 +359,7 @@ public class MainActivity extends Activity {
 
     private void disconnectPrinter() {
         pendingGuestName = null;
+        pendingRole = null;
         pendingTest = false;
         connecting = false;
         if (api != null) {
@@ -370,17 +379,19 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void printBadge(String rawName, boolean test) {
+    private void printBadge(String rawName, String rawRole, boolean test) {
         String name = normalizeName(rawName, test);
+        String role = normalizeRole(rawRole, test);
         if (!isPrinterConnected()) {
             pendingGuestName = name;
+            pendingRole = role;
             pendingTest = test;
             startConnect(savedPrinter() == null);
             return;
         }
 
         showBusy(getString(R.string.status_printing));
-        boolean submitted = drawAndCommit(name);
+        boolean submitted = drawAndCommit(name, role);
         if (!submitted) {
             onPrintFailed();
         }
@@ -393,43 +404,51 @@ public class MainActivity extends Activity {
         if (pendingTest) {
             pendingTest = false;
             String name = pendingGuestName;
+            String role = pendingRole;
             pendingGuestName = null;
-            printBadge(name, true);
+            pendingRole = null;
+            printBadge(name, role, true);
             return;
         }
         if (!TextUtils.isEmpty(pendingGuestName)) {
             String name = pendingGuestName;
+            String role = pendingRole;
             pendingGuestName = null;
-            printBadge(name, false);
+            pendingRole = null;
+            printBadge(name, role, false);
         }
     }
 
-    private boolean drawAndCommit(String name) {
+    private boolean drawAndCommit(String name, String role) {
         api.startJob(LABEL_WIDTH_MM, LABEL_HEIGHT_MM, 0);
-        api.setItemHorizontalAlignment(1);
-        api.setItemVerticalAlignment(1);
 
+        if (logoMark != null) {
+            api.drawBitmap(logoMark, 1.5, 4, 21, 17);
+        }
+
+        api.setItemHorizontalAlignment(0);
+        api.setItemVerticalAlignment(0);
         double fontMm = nameFontMm(name);
-        api.drawTextRegular(name, 2, 1.5, 46, 16, fontMm, 1);
-        api.drawTextRegular(getString(R.string.brand), 2, 18.5, 46, 5, 2.6, 0);
+        api.drawTextRegular(name, 25, 3, 23, 12, fontMm, 1);
+        api.drawTextRegular(role, 25, 16, 23, 6, 3.4, 0);
         return api.commitJob();
     }
 
     private double nameFontMm(String name) {
         int length = name.length();
         if (length <= 8) {
-            return 8;
+            return 6.2;
         }
         if (length <= 12) {
-            return 6.4;
+            return 5.2;
         }
         if (length <= 18) {
-            return 5;
+            return 4.2;
         }
         if (length <= 24) {
-            return 4.1;
+            return 3.5;
         }
-        return 3.3;
+        return 3.0;
     }
 
     private String normalizeName(String rawName, boolean test) {
@@ -438,6 +457,31 @@ public class MainActivity extends Activity {
             return test ? getString(R.string.test_name) : "GUEST";
         }
         return value.toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeRole(String rawRole, boolean test) {
+        String value = rawRole == null ? "" : rawRole.trim();
+        if (TextUtils.isEmpty(value)) {
+            return test ? "FOUNDER" : "";
+        }
+        return value.toUpperCase(Locale.ROOT);
+    }
+
+    private Bitmap loadLogoMark() {
+        InputStream stream = null;
+        try {
+            stream = getAssets().open("studiok-mark.png");
+            return BitmapFactory.decodeStream(stream);
+        } catch (IOException ignored) {
+            return null;
+        } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
     }
 
     private boolean isPrinterConnected() {

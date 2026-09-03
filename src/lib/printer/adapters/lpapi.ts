@@ -93,7 +93,7 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
     );
   }
 
-  async printGuest(name: string): Promise<void> {
+  async printGuest(name: string, role?: string): Promise<void> {
     if (!isAndroid()) {
       throw new PrinterError(
         "companion_unavailable",
@@ -101,7 +101,9 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
       );
     }
 
-    launchCompanion("print", { name });
+    const query: Record<string, string> = { name };
+    if (role) query.role = role;
+    launchCompanion("print", query);
     this.state = "connected";
     writeReady(true);
   }

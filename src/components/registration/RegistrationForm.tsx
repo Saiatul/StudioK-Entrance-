@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CountrySelect } from "@/components/registration/CountrySelect";
 import { HostSelect } from "@/components/registration/HostSelect";
+import { RoleSelect } from "@/components/registration/RoleSelect";
 import { LegalCheckbox } from "@/components/registration/LegalCheckbox";
 import { LegalDialog, type LegalDoc } from "@/components/registration/LegalDialog";
 import { SuccessScreen } from "@/components/registration/SuccessScreen";
@@ -25,6 +26,7 @@ export function RegistrationForm() {
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
   const [host, setHost] = useState("");
+  const [role, setRole] = useState("");
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -49,6 +51,7 @@ export function RegistrationForm() {
     setMobile("");
     setEmail("");
     setHost("");
+    setRole("");
     setLegalAccepted(false);
     setErrors({});
     setSaved(null);
@@ -67,6 +70,7 @@ export function RegistrationForm() {
       await getPrintService().printGuestBadge({
         id: registration.id,
         name: registration.name,
+        role: registration.role,
       });
       setPrintPhase("printed");
       setPrintError("");
@@ -89,6 +93,7 @@ export function RegistrationForm() {
       mobile,
       email,
       host,
+      role,
       legal_accepted: legalAccepted,
     });
 
@@ -175,6 +180,8 @@ export function RegistrationForm() {
           error={errors.name}
           onChange={(event) => setName(event.target.value)}
         />
+
+        <RoleSelect value={role} onChange={setRole} error={errors.role} />
 
         <div>
           <span className="field-label">Mobile number</span>

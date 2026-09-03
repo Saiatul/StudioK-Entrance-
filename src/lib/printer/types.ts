@@ -54,6 +54,7 @@ export type RasterLabel = {
 export type PrintableGuest = {
   id: number;
   name: string;
+  role?: string;
 };
 
 export type PrinterStatus = {

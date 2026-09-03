@@ -170,12 +170,15 @@ class PrintService {
 
   async printGuestBadge(guest: PrintableGuest): Promise<void> {
     if (this.settings.adapterId === "lpapi") {
-      await this.lpapi.printGuest(guest.name);
+      await this.lpapi.printGuest(guest.name, guest.role);
       this.notify();
       return;
     }
 
-    const label = await renderLabelRaster({ name: guest.name });
+    const label = await renderLabelRaster({
+      name: guest.name,
+      role: guest.role,
+    });
     await this.printRaster(label);
   }
 }
