@@ -40,19 +40,19 @@ export function LegalDialog({
   const content = DOCUMENTS[doc];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center">
-      <div className="max-h-[82dvh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-line bg-panel p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center">
+      <div className="max-h-[82dvh] w-full max-w-2xl overflow-y-auto rounded-[28px] bg-panel p-6">
         <div className="mb-5 flex items-start justify-between gap-4">
-          <h2 className="font-display text-2xl text-cream">{content.title}</h2>
+          <h2 className="text-[22px] font-semibold text-cream">{content.title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-12 px-3 text-sm tracking-[0.2em] text-gold uppercase"
+            className="min-h-11 px-2 text-[15px] font-medium text-gold"
           >
             Close
           </button>
         </div>
-        <div className="space-y-4 text-lg leading-relaxed text-cream/80">
+        <div className="space-y-4 text-[17px] leading-relaxed text-cream/75">
           {content.body.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
           ))}

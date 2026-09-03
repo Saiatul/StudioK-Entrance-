@@ -1,28 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Sans, Syne } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import "./globals.css";
 
-const syne = Syne({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-syne",
-  weight: ["600", "700", "800"],
-});
-
-const instrument = Instrument_Sans({
-  subsets: ["latin"],
-  variable: "--font-instrument",
+  variable: "--font-inter",
   weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "StudioK Event Check-In",
-  description: "Guest registration and badge printing for StudioK events.",
-  applicationName: "StudioK Check-In",
+  title: "studioK Check-in",
+  description: "Guest registration and badge printing for studioK.",
+  applicationName: "studioK Check-in",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "StudioK Check-In",
+    title: "studioK Check-in",
   },
   formatDetection: {
     telephone: false,
@@ -37,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#070708",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -52,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${syne.variable} ${instrument.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased`}>
         <ServiceWorkerRegister />
         <div className="kiosk-shell">{children}</div>
       </body>

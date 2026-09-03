@@ -10,15 +10,19 @@ export function PrinterStatusChip() {
   return (
     <Link
       href="/printer"
-      className="inline-flex min-h-12 items-center gap-2 rounded-full border border-line bg-white/[0.04] px-4 text-sm tracking-[0.16em] uppercase"
+      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-panel px-4 text-[13px] font-medium"
     >
       <span
-        className={`h-2.5 w-2.5 rounded-full ${
-          connected ? "bg-emerald-400" : "bg-rose-400"
+        className={`h-2 w-2 rounded-full ${
+          connected ? "bg-emerald-400" : "bg-white/25"
         }`}
       />
-      <span className="text-cream/80">
-        {connected ? "Printer connected" : "Printer disconnected"}
+      <span className="text-cream/70">
+        {connected
+          ? status.adapterId === "lpapi"
+            ? "Printer app ready"
+            : "Printer connected"
+          : "Printer"}
       </span>
     </Link>
   );

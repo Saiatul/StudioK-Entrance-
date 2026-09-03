@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">studioK Printer</string>
+    <string name="status_disconnected">Printer disconnected</string>
+    <string name="status_connecting">Connecting to printer…</string>
+    <string name="status_connected">Printer connected</string>
+    <string name="status_printing">Printing badge…</string>
+    <string name="hint_pair">Keep this app open on the tablet. Check-in in Chrome will send badges here.</string>
+    <string name="connect">Connect SEZNIK</string>
+    <string name="print_test">Print test badge</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="select_printer">Select printer</string>
+    <string name="bluetooth_missing">This tablet does not support Bluetooth.</string>
+    <string name="bluetooth_off">Turn on Bluetooth, then try again.</string>
+    <string name="need_permissions">Bluetooth permission is required to print badges.</string>
+    <string name="please_connect">Connect the SEZNIK printer first.</string>
+    <string name="connect_failed">Could not connect to the printer.</string>
+    <string name="connected_ok">Printer connected.</string>
+    <string name="print_ok">Badge printed.</string>
+    <string name="print_failed">Badge printing failed.</string>
+    <string name="label_size">50mm × 25mm</string>
+    <string name="brand">studioK</string>
+    <string name="test_name">TEST PRINT</string>
+</resources>

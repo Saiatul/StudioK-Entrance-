@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { COUNTRIES, type Country } from "@/lib/countries";
 
 type Props = {
@@ -12,6 +12,7 @@ type Props = {
 export function CountrySelect({ value, onChange, error }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -24,62 +25,70 @@ export function CountrySelect({ value, onChange, error }: Props) {
     );
   }, [query]);
 
+  useEffect(() => {
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
+
   return (
-    <>
+    <div ref={rootRef} className="relative shrink-0">
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className={`flex h-16 min-w-[7.5rem] items-center justify-between gap-3 rounded-2xl border bg-white/[0.04] px-4 text-lg text-cream ${
-          error ? "border-rose-400/70" : "border-line"
+        onClick={() => setOpen((current) => !current)}
+        className={`field-control flex min-w-[7.25rem] items-center justify-between gap-2 px-4 ${
+          error || open ? "border-gold/80" : ""
         }`}
+        aria-expanded={open}
         aria-label="Country code"
       >
-        <span className="font-semibold">{value.dial}</span>
-        <span className="text-gold">▼</span>
+        <span className="font-medium">{value.dial}</span>
+        <span
+          className={`text-cream/40 transition ${open ? "rotate-180" : ""}`}
+        >
+          ⌄
+        </span>
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center">
-          <div className="max-h-[80dvh] w-full max-w-lg overflow-hidden rounded-[28px] border border-line bg-panel shadow-2xl">
-            <div className="border-b border-line px-5 py-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-display text-xl text-cream">Country code</h2>
-                <button
-                  type="button"
-                  className="text-sm tracking-[0.2em] text-gold uppercase"
-                  onClick={() => setOpen(false)}
-                >
-                  Close
-                </button>
-              </div>
-              <input
-                autoFocus
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search country"
-                className="h-14 w-full rounded-2xl border border-line bg-white/[0.04] px-4 text-lg text-cream outline-none"
-              />
-            </div>
-            <div className="max-h-[52dvh] overflow-y-auto">
-              {filtered.map((country) => (
+        <div className="absolute top-[calc(100%+8px)] left-0 z-40 w-[min(22rem,calc(100vw-3rem))] overflow-hidden rounded-2xl border border-white/10 bg-[#2c2c2e] shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+          <div className="border-b border-white/10 p-3">
+            <input
+              autoFocus
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search"
+              className="h-11 w-full rounded-xl border border-white/10 bg-black/30 px-3 text-[15px] text-cream outline-none placeholder:text-cream/30 focus:border-gold/70"
+            />
+          </div>
+          <div className="max-h-64 overflow-y-auto py-1">
+            {filtered.map((country) => {
+              const selected = country.dial === value.dial && country.iso === value.iso;
+              return (
                 <button
                   type="button"
                   key={`${country.iso}-${country.dial}`}
-                  className="flex min-h-16 w-full items-center justify-between px-5 text-left text-lg text-cream hover:bg-white/[0.05]"
+                  className={`flex min-h-12 w-full items-center justify-between px-4 text-left text-[16px] ${
+                    selected ? "bg-gold/15" : "hover:bg-white/[0.06]"
+                  }`}
                   onClick={() => {
                     onChange(country);
                     setQuery("");
                     setOpen(false);
                   }}
                 >
-                  <span>{country.name}</span>
-                  <span className="font-semibold text-gold">{country.dial}</span>
+                  <span className="text-cream">{country.name}</span>
+                  <span className="font-medium text-gold">{country.dial}</span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

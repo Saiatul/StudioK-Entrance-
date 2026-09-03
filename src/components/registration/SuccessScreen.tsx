@@ -24,14 +24,14 @@ export function SuccessScreen({
   const firstName = name.trim().split(/\s+/)[0] || "guest";
 
   return (
-    <section className="flex min-h-[70dvh] flex-col items-center justify-center text-center">
-      <p className="text-sm tracking-[0.4em] text-gold uppercase">
-        {phase === "printed" ? "Badge Printed" : "Registration Successful"}
+    <section className="flex min-h-[62dvh] flex-col items-center justify-center text-center">
+      <p className="text-[13px] font-medium text-gold">
+        {phase === "printed" ? "Badge printed" : "Registered"}
       </p>
-      <h2 className="font-display mt-5 text-5xl font-extrabold text-cream sm:text-6xl">
-        Welcome, {firstName}!
+      <h2 className="mt-3 text-[40px] leading-tight font-semibold tracking-tight text-cream sm:text-5xl">
+        Welcome, {firstName}
       </h2>
-      <p className="mt-5 max-w-md text-xl text-cream/70">
+      <p className="mt-4 max-w-sm text-[17px] text-cream/60">
         {phase === "printing"
           ? "Printing your badge..."
           : phase === "printed"

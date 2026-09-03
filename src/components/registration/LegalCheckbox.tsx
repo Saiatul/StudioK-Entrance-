@@ -12,15 +12,15 @@ type Props = {
 export function LegalCheckbox({ checked, onChange, onOpenDoc, error }: Props) {
   return (
     <div>
-      <div className="flex items-start gap-4 rounded-2xl border border-line bg-white/[0.03] p-4">
+      <div className="flex items-start gap-4 rounded-[18px] bg-black/35 p-4">
         <input
           id="legal-accepted"
           type="checkbox"
           checked={checked}
           onChange={(event) => onChange(event.target.checked)}
-          className="mt-1 h-7 w-7 shrink-0 accent-[#e8c36a]"
+          className="mt-1 h-6 w-6 shrink-0 accent-[#e07030]"
         />
-        <p className="text-lg leading-relaxed text-cream/85">
+        <p className="text-[16px] leading-relaxed text-cream/80">
           <label htmlFor="legal-accepted" className="cursor-pointer">
             I agree to the{" "}
           </label>
@@ -50,7 +50,7 @@ export function LegalCheckbox({ checked, onChange, onOpenDoc, error }: Props) {
           .
         </p>
       </div>
-      {error ? <p className="mt-2 text-base text-rose-300">{error}</p> : null}
+      {error ? <p className="mt-2 text-[15px] text-rose-300">{error}</p> : null}
     </div>
   );
 }

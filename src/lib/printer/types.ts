@@ -16,7 +16,7 @@ export const PRINT_SETTINGS_KEY = "studiok.print.settings";
 
 export type PrintProtocol = "tspl" | "escpos";
 export type PrintRotation = 0 | 90 | 180 | 270;
-export type PrinterAdapterId = "web-bluetooth" | "print-bridge";
+export type PrinterAdapterId = "lpapi" | "web-bluetooth" | "print-bridge";
 
 export type PrinterConnectionState =
   | "disconnected"
@@ -31,6 +31,7 @@ export type PrinterErrorCode =
   | "printer_unavailable"
   | "print_failed"
   | "bridge_unavailable"
+  | "companion_unavailable"
   | "insecure_context";
 
 export class PrinterError extends Error {
@@ -80,6 +81,17 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   bridgeUrl: "http://127.0.0.1:9100",
 };
 
+export function isAndroidTablet(): boolean {
+  return typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+}
+
+export function getDefaultPrintSettings(): PrintSettings {
+  return {
+    ...DEFAULT_PRINT_SETTINGS,
+    adapterId: isAndroidTablet() ? "lpapi" : "web-bluetooth",
+  };
+}
+
 export interface PrinterAdapter {
   readonly id: PrinterAdapterId;
   readonly label: string;
@@ -103,6 +115,8 @@ export function userMessageForPrinterError(error: unknown): string {
         return "Badge printing failed.";
       case "bridge_unavailable":
         return "The local print bridge is not available.";
+      case "companion_unavailable":
+        return "Install and open the studioK Printer app on this Android tablet, then connect the SEZNIK printer.";
       case "insecure_context":
         return "Bluetooth printing requires HTTPS or localhost.";
       case "print_failed":

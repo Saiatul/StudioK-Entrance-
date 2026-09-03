@@ -165,7 +165,7 @@ export function RegistrationForm() {
 
   return (
     <>
-      <form onSubmit={onSubmit} className="space-y-5" noValidate>
+      <form onSubmit={onSubmit} className="space-y-4" noValidate>
         <Field
           id="name"
           label="Name"
@@ -177,10 +177,8 @@ export function RegistrationForm() {
         />
 
         <div>
-          <span className="mb-2 block text-sm font-medium tracking-[0.18em] text-cream/70 uppercase">
-            Mobile Number
-          </span>
-          <div className="flex gap-3">
+          <span className="field-label">Mobile number</span>
+          <div className="relative z-10 flex gap-3">
             <CountrySelect
               value={country}
               onChange={setCountry}
@@ -192,15 +190,13 @@ export function RegistrationForm() {
               placeholder="Mobile number"
               value={mobile}
               onChange={(event) => setMobile(event.target.value)}
-              className={`h-16 min-w-0 flex-1 rounded-2xl border bg-white/[0.04] px-5 text-lg text-cream outline-none placeholder:text-cream/25 ${
-                errors.mobile
-                  ? "border-rose-400/70"
-                  : "border-line focus:border-gold/80"
+              className={`field-control min-w-0 flex-1 ${
+                errors.mobile ? "border-rose-400/70" : ""
               }`}
             />
           </div>
           {errors.mobile ? (
-            <p className="mt-2 text-base text-rose-300">{errors.mobile}</p>
+            <p className="mt-2 text-[15px] text-rose-300">{errors.mobile}</p>
           ) : null}
         </div>
 
@@ -226,7 +222,7 @@ export function RegistrationForm() {
         />
 
         {errors.form ? (
-          <p className="text-center text-base text-rose-300">{errors.form}</p>
+          <p className="text-center text-[15px] text-rose-300">{errors.form}</p>
         ) : null}
 
         <Button type="submit" loading={submitting} className="mt-2">

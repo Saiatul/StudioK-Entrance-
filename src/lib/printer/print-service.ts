@@ -1,3 +1,4 @@
+import { LpapiCompanionAdapter } from "@/lib/printer/adapters/lpapi";
 import { PrintBridgeAdapter } from "@/lib/printer/adapters/print-bridge";
 import { WebBluetoothPrinterAdapter } from "@/lib/printer/adapters/web-bluetooth";
 import { renderLabelRaster, renderTestLabelRaster } from "@/lib/printer/label";
@@ -5,7 +6,7 @@ import { buildEscPosJob } from "@/lib/printer/protocols/escpos";
 import { buildTsplJob } from "@/lib/printer/protocols/tspl";
 import { rotatePackedBitmap } from "@/lib/printer/raster";
 import {
-  DEFAULT_PRINT_SETTINGS,
+  getDefaultPrintSettings,
   PRINT_SETTINGS_KEY,
   PrinterError,
   type PrintSettings,
@@ -17,14 +18,19 @@ import {
 } from "@/lib/printer/types";
 
 function loadSettings(): PrintSettings {
-  if (typeof window === "undefined") return DEFAULT_PRINT_SETTINGS;
+  const defaults = getDefaultPrintSettings();
+  if (typeof window === "undefined") return defaults;
 
   try {
     const raw = window.localStorage.getItem(PRINT_SETTINGS_KEY);
-    if (!raw) return DEFAULT_PRINT_SETTINGS;
-    return { ...DEFAULT_PRINT_SETTINGS, ...JSON.parse(raw) };
+    if (!raw) return defaults;
+    const merged = { ...defaults, ...JSON.parse(raw) } as PrintSettings;
+    if (defaults.adapterId === "lpapi" && merged.adapterId === "web-bluetooth") {
+      merged.adapterId = "lpapi";
+    }
+    return merged;
   } catch {
-    return DEFAULT_PRINT_SETTINGS;
+    return defaults;
   }
 }
 
@@ -33,9 +39,10 @@ function persistSettings(settings: PrintSettings) {
 }
 
 class PrintService {
-  private settings: PrintSettings = DEFAULT_PRINT_SETTINGS;
+  private settings: PrintSettings = getDefaultPrintSettings();
+  private lpapi = new LpapiCompanionAdapter();
   private webBluetooth = new WebBluetoothPrinterAdapter();
-  private printBridge = new PrintBridgeAdapter(DEFAULT_PRINT_SETTINGS.bridgeUrl);
+  private printBridge = new PrintBridgeAdapter(getDefaultPrintSettings().bridgeUrl);
   private listeners = new Set<() => void>();
   private cachedStatus: PrinterStatus | null = null;
 
@@ -90,9 +97,9 @@ class PrintService {
   }
 
   private currentAdapter(): PrinterAdapter {
-    return this.settings.adapterId === "print-bridge"
-      ? this.printBridge
-      : this.webBluetooth;
+    if (this.settings.adapterId === "print-bridge") return this.printBridge;
+    if (this.settings.adapterId === "lpapi") return this.lpapi;
+    return this.webBluetooth;
   }
 
   async connect(adapterId?: PrinterAdapterId): Promise<void> {
@@ -111,6 +118,13 @@ class PrintService {
   }
 
   async printRaster(label: RasterLabel): Promise<void> {
+    if (this.settings.adapterId === "lpapi") {
+      throw new PrinterError(
+        "print_failed",
+        "The studioK Printer app prints the badge directly.",
+      );
+    }
+
     const adapter = this.currentAdapter();
     if (adapter.getState() !== "connected") {
       throw new PrinterError("not_connected", "Printer is not connected.");
@@ -144,11 +158,23 @@ class PrintService {
   }
 
   async printTestLabel(): Promise<void> {
+    if (this.settings.adapterId === "lpapi") {
+      await this.lpapi.printTest();
+      this.notify();
+      return;
+    }
+
     const label = await renderTestLabelRaster();
     await this.printRaster(label);
   }
 
   async printGuestBadge(guest: PrintableGuest): Promise<void> {
+    if (this.settings.adapterId === "lpapi") {
+      await this.lpapi.printGuest(guest.name);
+      this.notify();
+      return;
+    }
+
     const label = await renderLabelRaster({ name: guest.name });
     await this.printRaster(label);
   }

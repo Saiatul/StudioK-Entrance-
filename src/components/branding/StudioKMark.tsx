@@ -3,48 +3,41 @@
 export function StudioKMark({ className = "" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 72 72"
+      viewBox="0 0 88 88"
       className={className}
       aria-hidden="true"
       fill="none"
     >
       <rect
-        x="3"
-        y="3"
-        width="66"
-        height="66"
-        rx="8"
-        stroke="currentColor"
-        strokeWidth="3"
+        x="18"
+        y="38"
+        width="52"
+        height="18"
+        rx="9"
+        fill="white"
+        transform="rotate(-32 44 47)"
       />
+      <circle cx="58" cy="26" r="9" fill="#E07030" />
       <path
-        d="M22 46c0-8 6.2-12 14.8-12H42M22 26h16.4C47.2 26 52 30.4 52 36.6c0 4.4-2.4 7.6-6.4 9.2L52 50"
-        stroke="currentColor"
-        strokeWidth="5.2"
+        d="M58 8v8M70 14l-6 6M74 26h-8M70 38l-6-6M46 14l6 6"
+        stroke="#E07030"
+        strokeWidth="3"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );
 }
 
-export function StudioKWordmark({
-  subtitle,
-}: {
-  subtitle?: string;
-}) {
+export function StudioKWordmark({ subtitle }: { subtitle?: string }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <div className="flex items-center gap-3 text-gold">
-        <StudioKMark className="h-11 w-11" />
-        <span className="font-display text-4xl font-extrabold tracking-[0.22em] text-cream sm:text-5xl">
-          STUDIOK
-        </span>
-      </div>
+      <img
+        src="/branding/studiok-logo.png"
+        alt="studioK"
+        className="h-28 w-auto object-contain sm:h-32"
+      />
       {subtitle ? (
-        <p className="mt-3 text-[0.7rem] font-semibold tracking-[0.55em] text-gold/80 sm:text-xs">
-          {subtitle}
-        </p>
+        <p className="mt-3 text-[15px] font-medium text-gold">{subtitle}</p>
       ) : null}
     </div>
   );
