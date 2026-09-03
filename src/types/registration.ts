@@ -1,7 +1,13 @@
 export const HOSTS = ["Amir Khan", "Prince Sah"] as const;
 export type Host = (typeof HOSTS)[number];
 
-export const ROLES = ["Investor", "Founder"] as const;
+export const ROLES = [
+  "Investor",
+  "Founder",
+  "Mentor",
+  "Ecosystem Enabler",
+  "Visitor",
+] as const;
 export type Role = (typeof ROLES)[number];
 
 export type RegistrationInput = {
