@@ -1,0 +1,54 @@
+name: Build studioK Printer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build printer APK
+        working-directory: android-printer
+        run: gradle assembleDebug --no-daemon
+
+      - name: Prepare download file
+        run: |
+          mkdir -p dist
+          cp android-printer/app/build/outputs/apk/debug/app-debug.apk dist/studioK-Printer.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studioK-Printer
+          path: dist/studioK-Printer.apk
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: studiok-printer
+          name: studioK Printer
+          body: |
+            Install this on the Android tablet (not the PC).
+
+            1. Open the APK on the tablet.
+            2. Allow install from this source if Android asks.
+            3. Open studioK Printer and connect the SEZNIK.
+            4. Keep the app installed, then use check-in in Chrome.
+          files: dist/studioK-Printer.apk
+          make_latest: true

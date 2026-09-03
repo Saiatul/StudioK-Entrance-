@@ -175,6 +175,13 @@ export function PrinterTestPanel() {
         </div>
       ) : null}
 
+      <a
+        href="https://github.com/Saiatul/StudioK-Entrance-/releases/latest/download/studioK-Printer.apk"
+        className="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-gold px-6 text-[17px] font-semibold text-white"
+      >
+        Download studioK Printer
+      </a>
+
       <div className="space-y-3">
         <Button onClick={connect} loading={busy === "connect"}>
           {nativeApp ? "Open Printer App" : "Connect Printer"}
