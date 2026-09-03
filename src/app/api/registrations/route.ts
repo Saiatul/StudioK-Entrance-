@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createRegistration } from "@/lib/db/registrations";
+import { ensureRolesSchema } from "@/lib/db/roles";
 import { validateRegistration } from "@/lib/validation/registration";
 
 export const runtime = "nodejs";
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    await ensureRolesSchema();
     const registration = await createRegistration(parsed.data);
     return NextResponse.json(registration, { status: 201 });
   } catch (error) {

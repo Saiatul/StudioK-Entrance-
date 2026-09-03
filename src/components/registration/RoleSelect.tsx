@@ -11,6 +11,7 @@ type Props = {
 
 export function RoleSelect({ value, onChange, error }: Props) {
   const [open, setOpen] = useState(false);
+  const [roles, setRoles] = useState<string[]>([...ROLES]);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,6 +22,23 @@ export function RoleSelect({ value, onChange, error }: Props) {
     }
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/roles")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { roles?: string[] } | null) => {
+        if (!cancelled && payload?.roles?.length) {
+          setRoles(payload.roles);
+        }
+      })
+      .catch(() => {
+        /* keep built-in roles */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -42,7 +60,7 @@ export function RoleSelect({ value, onChange, error }: Props) {
 
       {open ? (
         <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-40 overflow-hidden rounded-2xl border border-white/10 bg-[#2c2c2e] py-1 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
-          {ROLES.map((role) => {
+          {roles.map((role) => {
             const selected = role === value;
             return (
               <button
