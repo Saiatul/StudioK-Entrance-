@@ -23,13 +23,32 @@ function writeReady(ready: boolean) {
   }
 }
 
-/** Send a print job to the server queue — the Android app polls for it. */
+/** Fire the deep link via hidden iframe (won't navigate away). */
+function launchCompanion(host: string, query?: Record<string, string>) {
+  const params = new URLSearchParams(query);
+  const path = params.toString() ? `${host}?${params.toString()}` : host;
+  const href = `studiok://${path}`;
+
+  if (typeof document !== "undefined") {
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    iframe.src = href;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      try { document.body.removeChild(iframe); } catch { /* ignore */ }
+    }, 2000);
+  }
+}
+
+/** Also send to server queue as backup (Android app polls for it). */
 async function enqueueJob(name: string, role: string) {
-  await fetch("/api/print-queue", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, role }),
-  });
+  try {
+    await fetch("/api/print-queue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, role }),
+    });
+  } catch { /* ignore */ }
 }
 
 export class LpapiCompanionAdapter implements PrinterAdapter {
@@ -67,12 +86,18 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
   }
 
   async printGuest(name: string, role?: string): Promise<void> {
+    // Deep link fires the print immediately
+    const query: Record<string, string> = { name };
+    if (role) query.role = role;
+    launchCompanion("print", query);
+    // Also queue on server as backup
     await enqueueJob(name, role ?? "");
     this.state = "connected";
     writeReady(true);
   }
 
   async printTest(): Promise<void> {
+    launchCompanion("test");
     await enqueueJob("TEST PRINT", "FOUNDER");
     this.state = "connected";
     writeReady(true);

@@ -18,7 +18,7 @@ import type { FieldErrors, Registration } from "@/types/registration";
 type Screen = "form" | "success";
 type PrintPhase = "printing" | "printed" | "print-failed";
 
-const RESET_DELAY_MS = 4500;
+const RESET_DELAY_MS = 6000;
 
 export function RegistrationForm() {
   const [name, setName] = useState("");
