@@ -6,10 +6,6 @@ import {
 
 const READY_KEY = "studiok.print.lpapi.ready";
 
-function isAndroid() {
-  return typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
-}
-
 function readReady() {
   try {
     return window.localStorage.getItem(READY_KEY) === "1";
@@ -27,34 +23,13 @@ function writeReady(ready: boolean) {
   }
 }
 
-function launchCompanion(host: "connect" | "print" | "test" | "disconnect", query?: Record<string, string>) {
-  const params = new URLSearchParams(query);
-  const path = params.toString() ? `${host}?${params.toString()}` : host;
-  const href = `studiok://${path}`;
-
-  // Trigger the Android app without navigating the current page.
-  if (typeof document !== "undefined" && isAndroid()) {
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.src = href;
-    document.body.appendChild(iframe);
-    window.setTimeout(() => {
-      try {
-        document.body.removeChild(iframe);
-      } catch {
-        /* ignore */
-      }
-    }, 1500);
-    return;
-  }
-
-  const link = document.createElement("a");
-  link.href = href;
-  link.rel = "noopener";
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+/** Send a print job to the server queue — the Android app polls for it. */
+async function enqueueJob(name: string, role: string) {
+  await fetch("/api/print-queue", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, role }),
+  });
 }
 
 export class LpapiCompanionAdapter implements PrinterAdapter {
@@ -62,14 +37,11 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
   readonly label = "studioK Printer app";
 
   private state: PrinterConnectionState =
-    typeof window !== "undefined" && isAndroid() && readReady()
+    typeof window !== "undefined" && readReady()
       ? "connected"
       : "disconnected";
 
   getState(): PrinterConnectionState {
-    if (typeof navigator === "undefined" || !isAndroid()) {
-      return "unsupported";
-    }
     return this.state;
   }
 
@@ -78,24 +50,11 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
   }
 
   async connect(): Promise<void> {
-    if (!isAndroid()) {
-      this.state = "unsupported";
-      throw new PrinterError(
-        "companion_unavailable",
-        "Install the studioK Printer app on this Android tablet.",
-      );
-    }
-
-    this.state = "connecting";
-    launchCompanion("connect");
     this.state = "connected";
     writeReady(true);
   }
 
   async disconnect(): Promise<void> {
-    if (isAndroid()) {
-      launchCompanion("disconnect");
-    }
     this.state = "disconnected";
     writeReady(false);
   }
@@ -108,29 +67,13 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
   }
 
   async printGuest(name: string, role?: string): Promise<void> {
-    if (!isAndroid()) {
-      throw new PrinterError(
-        "companion_unavailable",
-        "Install the studioK Printer app on this Android tablet.",
-      );
-    }
-
-    const query: Record<string, string> = { name };
-    if (role) query.role = role;
-    launchCompanion("print", query);
+    await enqueueJob(name, role ?? "");
     this.state = "connected";
     writeReady(true);
   }
 
   async printTest(): Promise<void> {
-    if (!isAndroid()) {
-      throw new PrinterError(
-        "companion_unavailable",
-        "Install the studioK Printer app on this Android tablet.",
-      );
-    }
-
-    launchCompanion("test");
+    await enqueueJob("TEST PRINT", "FOUNDER");
     this.state = "connected";
     writeReady(true);
   }

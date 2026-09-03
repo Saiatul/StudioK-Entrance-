@@ -90,6 +90,17 @@
         android:textSize="17sp" />
 
     <Button
+        android:id="@+id/btnSetServer"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/btn_panel"
+        android:text="@string/set_server"
+        android:textAllCaps="false"
+        android:textColor="@color/cream"
+        android:textSize="17sp" />
+
+    <Button
         android:id="@+id/btnDisconnect"
         android:layout_width="match_parent"
         android:layout_height="56dp"

@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -31,8 +32,15 @@ import com.dothantech.printer.IDzPrinter.PrinterState;
 import com.dothantech.printer.IDzPrinter.PrintProgress;
 import com.dothantech.printer.IDzPrinter.ProgressInfo;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -44,6 +52,9 @@ public class MainActivity extends Activity {
     private static final String KEY_TYPE = "last_type";
 
     private static final int REQ_TEMPLATE_EDITOR = 100;
+    private static final String KEY_SERVER_URL = "server_url";
+    private static final String DEFAULT_SERVER = "https://studiok-entrance-production.up.railway.app";
+    private static final long POLL_INTERVAL_MS = 3000;
 
     // New drag-and-drop template keys (tpl2_ prefix)
     private static final String P_LOGO = "tpl2_logo_";
@@ -77,6 +88,45 @@ public class MainActivity extends Activity {
     private boolean connecting;
     private Intent pendingLaunchIntent;
     private Bitmap logoMark;
+    private boolean polling;
+
+    private final Runnable pollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!polling) return;
+            new Thread(() -> {
+                try {
+                    String serverUrl = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER);
+                    URL url = new URL(serverUrl + "/api/print-queue");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setConnectTimeout(5000);
+                    conn.setReadTimeout(5000);
+                    int code = conn.getResponseCode();
+                    if (code == 200) {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = reader.readLine()) != null) sb.append(line);
+                        reader.close();
+                        JSONObject json = new JSONObject(sb.toString());
+                        JSONArray jobs = json.optJSONArray("jobs");
+                        if (jobs != null && jobs.length() > 0) {
+                            for (int i = 0; i < jobs.length(); i++) {
+                                JSONObject job = jobs.getJSONObject(i);
+                                String name = job.optString("name", "GUEST");
+                                String role = job.optString("role", "");
+                                ui.post(() -> printBadge(name, role, false));
+                            }
+                        }
+                    }
+                    conn.disconnect();
+                } catch (Exception ignored) {
+                }
+                ui.postDelayed(pollRunnable, POLL_INTERVAL_MS);
+            }).start();
+        }
+    };
 
     // Drag-and-drop template elements (loaded from SharedPreferences)
     private TemplateElement tplLogo = TemplateElement.defaultLogo();
@@ -135,9 +185,12 @@ public class MainActivity extends Activity {
         Button btnEditTemplate = findViewById(R.id.btnEditTemplate);
         btnDisconnect = findViewById(R.id.btnDisconnect);
 
+        Button btnSetServer = findViewById(R.id.btnSetServer);
+
         btnConnect.setOnClickListener(v -> startConnect(true));
         btnTest.setOnClickListener(v -> printBadge(getString(R.string.test_name), "Founder", true));
         btnEditTemplate.setOnClickListener(v -> openTemplateEditor());
+        btnSetServer.setOnClickListener(v -> showServerUrlDialog());
         btnDisconnect.setOnClickListener(v -> disconnectPrinter());
 
         pendingLaunchIntent = getIntent();
@@ -145,6 +198,11 @@ public class MainActivity extends Activity {
         refreshStatus();
         loadTemplate();
         updatePreview(getString(R.string.test_name), "FOUNDER");
+
+        // Auto-start polling if printer was previously connected
+        if (isPrinterConnected()) {
+            startPolling();
+        }
     }
 
     @Override
@@ -171,10 +229,23 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        stopPolling();
         if (api != null) {
             api.quit();
         }
         super.onDestroy();
+    }
+
+    private void startPolling() {
+        if (polling) return;
+        polling = true;
+        ui.post(pollRunnable);
+        toast("Listening for print jobs from website");
+    }
+
+    private void stopPolling() {
+        polling = false;
+        ui.removeCallbacks(pollRunnable);
     }
 
     private void handleIntent(Intent intent) {
@@ -367,6 +438,7 @@ public class MainActivity extends Activity {
         toast(getString(R.string.connected_ok));
         refreshStatus();
         flushPendingPrint();
+        startPolling();
     }
 
     private void onPrinterDisconnected() {
@@ -545,6 +617,27 @@ public class MainActivity extends Activity {
             loadTemplate();
             updatePreview(getString(R.string.test_name), "FOUNDER");
         }
+    }
+
+    private void showServerUrlDialog() {
+        String current = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER);
+        EditText input = new EditText(this);
+        input.setText(current);
+        input.setTextColor(getResources().getColor(R.color.cream));
+        input.setSingleLine();
+
+        new AlertDialog.Builder(this)
+                .setTitle("Server URL")
+                .setMessage("Enter the website URL (e.g. https://studiok-entrance-production.up.railway.app)")
+                .setView(input)
+                .setPositiveButton("Save", (d, w) -> {
+                    String url = input.getText().toString().trim();
+                    if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
+                    prefs.edit().putString(KEY_SERVER_URL, url).apply();
+                    toast("Server: " + url);
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private String normalizeName(String rawName, boolean test) {
