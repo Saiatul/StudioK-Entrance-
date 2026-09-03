@@ -1,5 +1,5 @@
 export const LABEL_WIDTH_MM = 50;
-export const LABEL_HEIGHT_MM = 25;
+export const LABEL_HEIGHT_MM = 20;
 export const PRINTER_DPI = 203;
 
 export const LABEL_WIDTH_PX = Math.round((LABEL_WIDTH_MM / 25.4) * PRINTER_DPI);

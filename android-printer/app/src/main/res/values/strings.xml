@@ -18,7 +18,7 @@
     <string name="connected_ok">Printer connected.</string>
     <string name="print_ok">Badge printed.</string>
     <string name="print_failed">Badge printing failed.</string>
-    <string name="label_size">50mm × 25mm</string>
+    <string name="label_size">50mm × 20mm</string>
     <string name="brand">studioK</string>
     <string name="test_name">TEST PRINT</string>
 </resources>

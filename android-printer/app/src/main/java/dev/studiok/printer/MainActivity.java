@@ -9,6 +9,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,6 +19,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,7 +42,7 @@ public class MainActivity extends Activity {
     private static final String KEY_MAC = "last_mac";
     private static final String KEY_TYPE = "last_type";
     private static final double LABEL_WIDTH_MM = 50;
-    private static final double LABEL_HEIGHT_MM = 25;
+    private static final double LABEL_HEIGHT_MM = 20;
     private static final int LABEL_GAP_TYPE = 2;
     private static final int LABEL_GAP_MM = 2;
 
@@ -53,6 +57,7 @@ public class MainActivity extends Activity {
 
     private TextView statusTitle;
     private TextView statusDetail;
+    private ImageView previewImage;
     private Button btnConnect;
     private Button btnTest;
     private Button btnDisconnect;
@@ -111,6 +116,7 @@ public class MainActivity extends Activity {
 
         statusTitle = findViewById(R.id.statusTitle);
         statusDetail = findViewById(R.id.statusDetail);
+        previewImage = findViewById(R.id.previewImage);
         btnConnect = findViewById(R.id.btnConnect);
         btnTest = findViewById(R.id.btnTest);
         btnDisconnect = findViewById(R.id.btnDisconnect);
@@ -122,6 +128,7 @@ public class MainActivity extends Activity {
         pendingLaunchIntent = getIntent();
         requestPrinterPermissions();
         refreshStatus();
+        updatePreview(getString(R.string.test_name), "FOUNDER");
     }
 
     @Override
@@ -382,6 +389,9 @@ public class MainActivity extends Activity {
     private void printBadge(String rawName, String rawRole, boolean test) {
         String name = normalizeName(rawName, test);
         String role = normalizeRole(rawRole, test);
+
+        updatePreview(name, role);
+
         if (!isPrinterConnected()) {
             pendingGuestName = name;
             pendingRole = role;
@@ -423,32 +433,79 @@ public class MainActivity extends Activity {
         api.startJob(LABEL_WIDTH_MM, LABEL_HEIGHT_MM, 0);
 
         if (logoMark != null) {
-            api.drawBitmap(logoMark, 1.5, 4, 21, 17);
+            // Left column (logo only)
+            api.drawBitmap(logoMark, 1.5, 2, 21, 16);
         }
 
         api.setItemHorizontalAlignment(0);
         api.setItemVerticalAlignment(0);
         double fontMm = nameFontMm(name);
-        api.drawTextRegular(name, 25, 3, 23, 12, fontMm, 1);
-        api.drawTextRegular(role, 25, 16, 23, 6, 3.4, 0);
+        // Right column (name on top + role tag below)
+        api.drawTextRegular(name, 25, 2, 23, 9, fontMm, 1);
+        api.drawTextRegular(role, 25, 12, 23, 6, 3.0, 0);
         return api.commitJob();
     }
 
     private double nameFontMm(String name) {
         int length = name.length();
         if (length <= 8) {
-            return 6.2;
+            return 5.4;
         }
         if (length <= 12) {
-            return 5.2;
+            return 4.6;
         }
         if (length <= 18) {
-            return 4.2;
+            return 3.9;
         }
         if (length <= 24) {
-            return 3.5;
+            return 3.3;
         }
         return 3.0;
+    }
+
+    private void updatePreview(String name, String role) {
+        if (previewImage == null || logoMark == null) return;
+
+        int previewW = 400; // px
+        int previewH = 160; // px (50x20mm @ 8px/mm)
+        float sx = previewW / (float) LABEL_WIDTH_MM; // 8
+        float sy = previewH / (float) LABEL_HEIGHT_MM; // 8
+
+        Bitmap preview = Bitmap.createBitmap(previewW, previewH, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(preview);
+        canvas.drawColor(Color.WHITE);
+
+        Paint line = new Paint();
+        line.setColor(Color.parseColor("#dddddd"));
+        // Column divider at x=25mm
+        canvas.drawLine(25f * sx, 0, 25f * sx, previewH, line);
+
+        Paint paint = new Paint();
+        paint.setColor(Color.BLACK);
+        paint.setAntiAlias(true);
+
+        // Logo bitmap
+        android.graphics.RectF dst = new android.graphics.RectF(
+                1.5f * sx,
+                2f * sy,
+                (1.5f + 21f) * sx,
+                (2f + 16f) * sy
+        );
+        canvas.drawBitmap(logoMark, null, dst, null);
+
+        // Text (approximate baseline positioning)
+        float textX = 25f * sx;
+        double fontMm = nameFontMm(name);
+        float nameFontPx = (float) (fontMm * sy);
+        paint.setTextSize(nameFontPx);
+        canvas.drawText(name, textX, (2f * sy) + nameFontPx, paint);
+
+        float roleFontMm = 3.0f;
+        float roleFontPx = roleFontMm * sy;
+        paint.setTextSize(roleFontPx);
+        canvas.drawText(role, textX, (12f * sy) + roleFontPx, paint);
+
+        previewImage.setImageBitmap(preview);
     }
 
     private String normalizeName(String rawName, boolean test) {

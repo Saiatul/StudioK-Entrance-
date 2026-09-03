@@ -77,8 +77,8 @@ export function PrinterTestPanel() {
       setVerified(true);
       setMessage(
         nativeApp
-          ? "Sent a 50mm × 25mm test badge to the studioK Printer app. Confirm it comes out of the SEZNIK."
-          : "Test label sent. Confirm the physical 50mm × 25mm print before using the desk flow.",
+          ? "Sent a 50mm × 20mm test badge to the studioK Printer app. Confirm it comes out of the SEZNIK."
+            : "Test label sent. Confirm the physical 50mm × 20mm print before using the desk flow.",
       );
     } catch (err) {
       setVerified(false);
@@ -166,7 +166,7 @@ export function PrinterTestPanel() {
               }}
               className="field-control w-full appearance-none"
             >
-              <option value="0">0° — 50mm × 25mm</option>
+              <option value="0">0° — 50mm × 20mm</option>
               <option value="180">180°</option>
               <option value="90">90° (if the printer feeds sideways)</option>
               <option value="270">270°</option>
@@ -212,7 +212,7 @@ export function PrinterTestPanel() {
         <p>
           {verified
             ? "A test job was sent from this tablet. Confirm the physical label before going live."
-            : "Install studioK Printer on the tablet, connect the SEZNIK in that app, then print a 50mm × 25mm test badge from this page."}
+            : "Install studioK Printer on the tablet, connect the SEZNIK in that app, then print a 50mm × 20mm test badge from this page."}
         </p>
       </div>
     </div>

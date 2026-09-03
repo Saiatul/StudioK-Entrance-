@@ -30,10 +30,24 @@ function writeReady(ready: boolean) {
 function launchCompanion(host: "connect" | "print" | "test" | "disconnect", query?: Record<string, string>) {
   const params = new URLSearchParams(query);
   const path = params.toString() ? `${host}?${params.toString()}` : host;
-  const custom = `studiok://${path}`;
-  const intent = `intent://${path}#Intent;scheme=studiok;package=dev.studiok.printer;end`;
+  const href = `studiok://${path}`;
 
-  const href = isAndroid() ? intent : custom;
+  // Trigger the Android app without navigating the current page.
+  if (typeof document !== "undefined" && isAndroid()) {
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    iframe.src = href;
+    document.body.appendChild(iframe);
+    window.setTimeout(() => {
+      try {
+        document.body.removeChild(iframe);
+      } catch {
+        /* ignore */
+      }
+    }, 1500);
+    return;
+  }
+
   const link = document.createElement("a");
   link.href = href;
   link.rel = "noopener";
