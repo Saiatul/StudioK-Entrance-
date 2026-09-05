@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { HOSTS, ROLES } from "@/types/registration";
 
 type Row = {
   id: number;
@@ -18,16 +19,40 @@ export default function AdminPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [hostFilter, setHostFilter] = useState("all");
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
     fetch("/api/admin/registrations")
       .then((r) => r.json())
       .then((d) => setRows(d.registrations ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    load();
   }, []);
 
+  const roleOptions = useMemo(() => {
+    const fromData = rows
+      .map((r) => r.role)
+      .filter((r): r is string => Boolean(r && r.trim()));
+    return Array.from(new Set([...ROLES, ...fromData])).sort();
+  }, [rows]);
+
+  const hostOptions = useMemo(() => {
+    const fromData = rows
+      .map((r) => r.host)
+      .filter((h) => Boolean(h && h.trim()));
+    return Array.from(new Set([...HOSTS, ...fromData])).sort();
+  }, [rows]);
+
   const filtered = rows.filter((r) => {
+    if (roleFilter !== "all" && (r.role ?? "") !== roleFilter) return false;
+    if (hostFilter !== "all" && r.host !== hostFilter) return false;
+
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -41,47 +66,66 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-ink p-6">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-cream">
             <span className="text-gold">studioK</span> Admin
           </h1>
           <p className="mt-1 text-sm text-cream/50">
-            {rows.length} registration{rows.length !== 1 ? "s" : ""}
+            {filtered.length} of {rows.length} registration
+            {rows.length !== 1 ? "s" : ""}
           </p>
         </div>
         <button
-          onClick={() => {
-            setLoading(true);
-            fetch("/api/admin/registrations")
-              .then((r) => r.json())
-              .then((d) => setRows(d.registrations ?? []))
-              .catch(() => {})
-              .finally(() => setLoading(false));
-          }}
-          className="rounded-lg bg-panel px-4 py-2 text-sm text-cream hover:bg-panel/80 transition"
+          onClick={load}
+          className="rounded-lg bg-panel px-4 py-2 text-sm text-cream transition hover:bg-panel/80"
         >
           Refresh
         </button>
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        placeholder="Search by name, mobile, email, role, host…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="mb-4 w-full rounded-lg border border-line bg-panel px-4 py-3 text-cream placeholder:text-cream/30 outline-none focus:border-gold"
-      />
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <input
+          type="text"
+          placeholder="Search by name, mobile, email…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-lg border border-line bg-panel px-4 py-3 text-cream outline-none placeholder:text-cream/30 focus:border-gold sm:col-span-1"
+        />
 
-      {/* Table */}
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="w-full appearance-none rounded-lg border border-line bg-panel px-4 py-3 text-cream outline-none focus:border-gold"
+        >
+          <option value="all">All roles</option>
+          {roleOptions.map((role) => (
+            <option key={role} value={role}>
+              {role}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={hostFilter}
+          onChange={(e) => setHostFilter(e.target.value)}
+          className="w-full appearance-none rounded-lg border border-line bg-panel px-4 py-3 text-cream outline-none focus:border-gold"
+        >
+          <option value="all">All hosts</option>
+          {hostOptions.map((host) => (
+            <option key={host} value={host}>
+              {host}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {loading ? (
-        <p className="text-cream/50 text-center py-12">Loading…</p>
+        <p className="py-12 text-center text-cream/50">Loading…</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line">
           <table className="w-full text-left text-sm">
-            <thead className="bg-panel text-cream/60 text-xs uppercase tracking-wider">
+            <thead className="bg-panel text-xs uppercase tracking-wider text-cream/60">
               <tr>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Name</th>
@@ -96,15 +140,22 @@ export default function AdminPage() {
             <tbody className="divide-y divide-line">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-cream/40">
-                    {search ? "No matches" : "No registrations yet"}
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-cream/40"
+                  >
+                    {search || roleFilter !== "all" || hostFilter !== "all"
+                      ? "No matches"
+                      : "No registrations yet"}
                   </td>
                 </tr>
               ) : (
                 filtered.map((r) => (
-                  <tr key={r.id} className="hover:bg-panel/50 transition">
+                  <tr key={r.id} className="transition hover:bg-panel/50">
                     <td className="px-4 py-3 text-cream/40">{r.id}</td>
-                    <td className="px-4 py-3 font-medium text-cream">{r.name}</td>
+                    <td className="px-4 py-3 font-medium text-cream">
+                      {r.name}
+                    </td>
                     <td className="px-4 py-3 text-cream/80">
                       {r.country_code} {r.mobile}
                     </td>
@@ -126,7 +177,7 @@ export default function AdminPage() {
                         <span className="text-red-400">✗</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-cream/50 text-xs">
+                    <td className="px-4 py-3 text-xs text-cream/50">
                       {new Date(r.registered_at).toLocaleString()}
                     </td>
                   </tr>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePrinterStatus } from "@/lib/printer/use-printer-status";
 
+/** Compact red/green printer status control. */
 export function PrinterStatusChip() {
   const status = usePrinterStatus();
   const connected = status.state === "connected";
@@ -10,20 +11,19 @@ export function PrinterStatusChip() {
   return (
     <Link
       href="/printer"
-      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-panel px-4 text-[13px] font-medium"
+      aria-label={connected ? "Printer connected" : "Printer disconnected"}
+      title={connected ? "Printer connected" : "Printer disconnected"}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition ${
+        connected
+          ? "border-emerald-500/40 bg-emerald-500/15"
+          : "border-rose-500/40 bg-rose-500/15"
+      }`}
     >
       <span
-        className={`h-2 w-2 rounded-full ${
-          connected ? "bg-emerald-400" : "bg-white/25"
+        className={`h-3 w-3 rounded-full ${
+          connected ? "bg-emerald-400" : "bg-rose-400"
         }`}
       />
-      <span className="text-cream/70">
-        {connected
-          ? status.adapterId === "lpapi"
-            ? "Printer app ready"
-            : "Printer connected"
-          : "Printer"}
-      </span>
     </Link>
   );
 }
