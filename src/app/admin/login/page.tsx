@@ -1,11 +1,9 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 
 function AdminLoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +19,10 @@ function AdminLoginForm() {
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
       });
       const payload = (await response.json()) as { error?: string };
 
@@ -31,11 +32,11 @@ function AdminLoginForm() {
       }
 
       const next = searchParams.get("next") || "/admin";
-      router.replace(next.startsWith("/admin") ? next : "/admin");
-      router.refresh();
+      const target = next.startsWith("/admin") ? next : "/admin";
+      // Hard navigation so the new auth cookie is definitely applied
+      window.location.assign(target);
     } catch {
       setError("Unable to sign in. Please try again.");
-    } finally {
       setLoading(false);
     }
   }

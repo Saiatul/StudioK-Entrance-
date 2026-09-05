@@ -71,16 +71,18 @@ export function verifyAdminCredentials(email: string, password: string): boolean
 export async function createAdminSessionToken(email: string): Promise<string> {
   const normalized = email.trim().toLowerCase();
   const expiresAt = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-  const payload = `${normalized}.${expiresAt}`;
+  const payload = `${normalized}|${expiresAt}`;
   const signature = await hmacSign(payload);
-  return `${payload}.${signature}`;
+  return `${payload}|${signature}`;
 }
 
 export async function readAdminSession(
   token: string | undefined | null,
 ): Promise<{ email: string } | null> {
   if (!token) return null;
-  const parts = token.split(".");
+
+  // Format: email|expiresAt|signature  (pipe, because emails contain dots)
+  const parts = token.split("|");
   if (parts.length !== 3) return null;
 
   const [email, expiresRaw, signature] = parts;
@@ -89,7 +91,7 @@ export async function readAdminSession(
     return null;
   }
 
-  const ok = await hmacVerify(`${email}.${expiresAt}`, signature);
+  const ok = await hmacVerify(`${email}|${expiresAt}`, signature);
   if (!ok) return null;
   if (!isAllowedAdminEmail(email)) return null;
   return { email };
