@@ -85,6 +85,8 @@ public class MainActivity extends Activity {
     private Intent pendingLaunchIntent;
     private Bitmap logoMark;
     private boolean polling;
+    private String lastPrintKey = "";
+    private long lastPrintAtMs = 0;
 
     private final Runnable pollRunnable = new Runnable() {
         @Override
@@ -500,6 +502,15 @@ public class MainActivity extends Activity {
     private void printBadge(String rawName, String rawRole, boolean test) {
         String name = normalizeName(rawName, test);
         String role = normalizeRole(rawRole, test);
+
+        // Ignore duplicate print requests within 8 seconds (deep link + queue race)
+        String printKey = name + "|" + role + "|" + (test ? "t" : "p");
+        long now = System.currentTimeMillis();
+        if (printKey.equals(lastPrintKey) && (now - lastPrintAtMs) < 8000) {
+            return;
+        }
+        lastPrintKey = printKey;
+        lastPrintAtMs = now;
 
         updatePreview(name, role);
 

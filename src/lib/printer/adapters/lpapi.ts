@@ -35,20 +35,13 @@ function launchCompanion(host: string, query?: Record<string, string>) {
     iframe.src = href;
     document.body.appendChild(iframe);
     setTimeout(() => {
-      try { document.body.removeChild(iframe); } catch { /* ignore */ }
+      try {
+        document.body.removeChild(iframe);
+      } catch {
+        /* ignore */
+      }
     }, 2000);
   }
-}
-
-/** Also send to server queue as backup (Android app polls for it). */
-async function enqueueJob(name: string, role: string) {
-  try {
-    await fetch("/api/print-queue", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, role }),
-    });
-  } catch { /* ignore */ }
 }
 
 export class LpapiCompanionAdapter implements PrinterAdapter {
@@ -86,19 +79,16 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
   }
 
   async printGuest(name: string, role?: string): Promise<void> {
-    // Deep link fires the print immediately
+    // Only deep link — do NOT also enqueue (that caused double prints on tablet)
     const query: Record<string, string> = { name };
     if (role) query.role = role;
     launchCompanion("print", query);
-    // Also queue on server as backup
-    await enqueueJob(name, role ?? "");
     this.state = "connected";
     writeReady(true);
   }
 
   async printTest(): Promise<void> {
     launchCompanion("test");
-    await enqueueJob("TEST PRINT", "FOUNDER");
     this.state = "connected";
     writeReady(true);
   }
