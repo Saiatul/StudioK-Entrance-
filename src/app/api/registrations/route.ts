@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createRegistration } from "@/lib/db/registrations";
+import { ensureHostsSchema, hostExists } from "@/lib/db/hosts";
 import { ensureRolesSchema } from "@/lib/db/roles";
 import { validateRegistration } from "@/lib/validation/registration";
 
@@ -30,6 +31,18 @@ export async function POST(request: Request) {
 
   try {
     await ensureRolesSchema();
+    await ensureHostsSchema();
+
+    if (!(await hostExists(parsed.data.host))) {
+      return NextResponse.json(
+        {
+          error: "Please check the highlighted fields.",
+          fieldErrors: { host: "Please select a host." },
+        },
+        { status: 400 },
+      );
+    }
+
     const registration = await createRegistration(parsed.data);
     return NextResponse.json(registration, { status: 201 });
   } catch (error) {

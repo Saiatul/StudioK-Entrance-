@@ -1,5 +1,4 @@
 import {
-  HOSTS,
   ROLES,
   type FieldErrors,
   type RegistrationInput,
@@ -45,7 +44,7 @@ export function validateRegistration(
     errors.email = "Please enter a valid email address.";
   }
 
-  if (!host || !HOSTS.includes(host as (typeof HOSTS)[number])) {
+  if (!host || host.length > 120) {
     errors.host = "Please select a host.";
   }
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { HOSTS, ROLES } from "@/types/registration";
+import { ROLES } from "@/types/registration";
 
 type Row = {
   id: number;
@@ -16,15 +16,28 @@ type Row = {
   registered_at: string;
 };
 
+type HostRow = {
+  id: number;
+  name: string;
+  email: string;
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]);
+  const [hosts, setHosts] = useState<HostRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [hostFilter, setHostFilter] = useState("all");
 
-  function load() {
+  const [newHostName, setNewHostName] = useState("");
+  const [newHostEmail, setNewHostEmail] = useState("");
+  const [hostBusy, setHostBusy] = useState(false);
+  const [hostMessage, setHostMessage] = useState("");
+  const [hostError, setHostError] = useState("");
+
+  function loadRegistrations() {
     setLoading(true);
     fetch("/api/admin/registrations")
       .then(async (r) => {
@@ -39,10 +52,92 @@ export default function AdminPage() {
       .finally(() => setLoading(false));
   }
 
+  function loadHosts() {
+    fetch("/api/admin/hosts")
+      .then(async (r) => {
+        if (r.status === 401) {
+          router.replace("/admin/login");
+          return { hosts: [] };
+        }
+        return r.json();
+      })
+      .then((d) => setHosts(d.hosts ?? []))
+      .catch(() => {});
+  }
+
+  function load() {
+    loadRegistrations();
+    loadHosts();
+  }
+
   async function signOut() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.replace("/admin/login");
     router.refresh();
+  }
+
+  async function addHost(event: FormEvent) {
+    event.preventDefault();
+    setHostBusy(true);
+    setHostError("");
+    setHostMessage("");
+
+    try {
+      const response = await fetch("/api/admin/hosts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newHostName.trim(),
+          email: newHostEmail.trim(),
+        }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        host?: HostRow;
+      };
+
+      if (!response.ok) {
+        setHostError(payload.error || "Unable to add host.");
+        return;
+      }
+
+      setNewHostName("");
+      setNewHostEmail("");
+      setHostMessage("Host added. It now appears on check-in.");
+      loadHosts();
+    } catch {
+      setHostError("Unable to add host.");
+    } finally {
+      setHostBusy(false);
+    }
+  }
+
+  async function removeHost(id: number, name: string) {
+    if (!window.confirm(`Delete host “${name}”?`)) return;
+
+    setHostBusy(true);
+    setHostError("");
+    setHostMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/hosts/${id}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setHostError(payload.error || "Unable to delete host.");
+        return;
+      }
+
+      setHostMessage(`Deleted ${name}.`);
+      if (hostFilter === name) setHostFilter("all");
+      loadHosts();
+    } catch {
+      setHostError("Unable to delete host.");
+    } finally {
+      setHostBusy(false);
+    }
   }
 
   useEffect(() => {
@@ -57,11 +152,12 @@ export default function AdminPage() {
   }, [rows]);
 
   const hostOptions = useMemo(() => {
-    const fromData = rows
+    const fromRegs = rows
       .map((r) => r.host)
       .filter((h) => Boolean(h && h.trim()));
-    return Array.from(new Set([...HOSTS, ...fromData])).sort();
-  }, [rows]);
+    const fromHosts = hosts.map((h) => h.name);
+    return Array.from(new Set([...fromHosts, ...fromRegs])).sort();
+  }, [rows, hosts]);
 
   const filtered = rows.filter((r) => {
     if (roleFilter !== "all" && (r.role ?? "") !== roleFilter) return false;
@@ -105,6 +201,93 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      {/* Hosts management */}
+      <section className="mb-8 rounded-xl border border-line bg-panel p-5">
+        <h2 className="text-lg font-semibold text-cream">Hosts</h2>
+        <p className="mt-1 text-sm text-cream/50">
+          Add hosts here. They appear in the check-in Host dropdown.
+        </p>
+
+        <form
+          onSubmit={addHost}
+          className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+        >
+          <input
+            type="text"
+            required
+            value={newHostName}
+            onChange={(e) => setNewHostName(e.target.value)}
+            placeholder="Host name"
+            className="w-full rounded-lg border border-line bg-ink px-4 py-3 text-cream outline-none placeholder:text-cream/30 focus:border-gold"
+          />
+          <input
+            type="email"
+            required
+            value={newHostEmail}
+            onChange={(e) => setNewHostEmail(e.target.value)}
+            placeholder="Host email"
+            className="w-full rounded-lg border border-line bg-ink px-4 py-3 text-cream outline-none placeholder:text-cream/30 focus:border-gold"
+          />
+          <button
+            type="submit"
+            disabled={hostBusy}
+            className="rounded-lg bg-gold px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            Add host
+          </button>
+        </form>
+
+        {hostError ? (
+          <p className="mt-3 text-sm text-rose-300">{hostError}</p>
+        ) : null}
+        {hostMessage ? (
+          <p className="mt-3 text-sm text-gold">{hostMessage}</p>
+        ) : null}
+
+        <div className="mt-4 overflow-x-auto rounded-lg border border-line">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-ink text-xs uppercase tracking-wider text-cream/60">
+              <tr>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {hosts.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-6 text-center text-cream/40"
+                  >
+                    No hosts yet
+                  </td>
+                </tr>
+              ) : (
+                hosts.map((host) => (
+                  <tr key={host.id}>
+                    <td className="px-4 py-3 font-medium text-cream">
+                      {host.name}
+                    </td>
+                    <td className="px-4 py-3 text-cream/80">{host.email}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        disabled={hostBusy}
+                        onClick={() => removeHost(host.id, host.name)}
+                        className="rounded-md px-3 py-1.5 text-sm text-rose-300 transition hover:bg-rose-500/10 disabled:opacity-60"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <input

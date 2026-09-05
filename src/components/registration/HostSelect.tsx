@@ -9,8 +9,13 @@ type Props = {
   error?: string;
 };
 
+type HostOption = { name: string; email?: string };
+
 export function HostSelect({ value, onChange, error }: Props) {
   const [open, setOpen] = useState(false);
+  const [hosts, setHosts] = useState<HostOption[]>(
+    HOSTS.map((name) => ({ name })),
+  );
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,6 +26,31 @@ export function HostSelect({ value, onChange, error }: Props) {
     }
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/hosts")
+      .then((response) => (response.ok ? response.json() : null))
+      .then(
+        (
+          payload: {
+            hosts?: Array<{ name: string; email?: string }>;
+          } | null,
+        ) => {
+          if (!cancelled && payload?.hosts?.length) {
+            setHosts(
+              payload.hosts.map((h) => ({ name: h.name, email: h.email })),
+            );
+          }
+        },
+      )
+      .catch(() => {
+        /* keep built-in hosts */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -42,21 +72,23 @@ export function HostSelect({ value, onChange, error }: Props) {
 
       {open ? (
         <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-40 overflow-hidden rounded-2xl border border-white/10 bg-[#2c2c2e] py-1 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
-          {HOSTS.map((host) => {
-            const selected = host === value;
+          {hosts.map((host) => {
+            const selected = host.name === value;
             return (
               <button
                 type="button"
-                key={host}
-                className={`flex min-h-12 w-full items-center px-5 text-left text-[16px] ${
-                  selected ? "bg-gold/15 text-gold" : "text-cream hover:bg-white/[0.06]"
+                key={host.name}
+                className={`flex min-h-12 w-full flex-col items-start justify-center px-5 py-2 text-left ${
+                  selected
+                    ? "bg-gold/15 text-gold"
+                    : "text-cream hover:bg-white/[0.06]"
                 }`}
                 onClick={() => {
-                  onChange(host);
+                  onChange(host.name);
                   setOpen(false);
                 }}
               >
-                {host}
+                <span className="text-[16px]">{host.name}</span>
               </button>
             );
           })}
