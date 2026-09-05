@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { HOSTS, ROLES } from "@/types/registration";
 
 type Row = {
@@ -16,6 +17,7 @@ type Row = {
 };
 
 export default function AdminPage() {
+  const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -25,10 +27,22 @@ export default function AdminPage() {
   function load() {
     setLoading(true);
     fetch("/api/admin/registrations")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (r.status === 401) {
+          router.replace("/admin/login");
+          return { registrations: [] };
+        }
+        return r.json();
+      })
       .then((d) => setRows(d.registrations ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
+  }
+
+  async function signOut() {
+    await fetch("/api/admin/logout", { method: "POST" });
+    router.replace("/admin/login");
+    router.refresh();
   }
 
   useEffect(() => {
@@ -76,12 +90,20 @@ export default function AdminPage() {
             {rows.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <button
-          onClick={load}
-          className="rounded-lg bg-panel px-4 py-2 text-sm text-cream transition hover:bg-panel/80"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={signOut}
+            className="rounded-lg bg-panel px-4 py-2 text-sm text-cream/70 transition hover:bg-panel/80"
+          >
+            Sign out
+          </button>
+          <button
+            onClick={load}
+            className="rounded-lg bg-panel px-4 py-2 text-sm text-cream transition hover:bg-panel/80"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
