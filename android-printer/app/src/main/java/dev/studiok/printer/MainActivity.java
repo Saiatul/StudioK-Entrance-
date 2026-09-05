@@ -194,10 +194,8 @@ public class MainActivity extends Activity {
         updatePreview(getString(R.string.test_name), "FOUNDER");
         handleInternalAction(getIntent());
 
-        // Auto-start polling if printer was previously connected
-        if (isPrinterConnected()) {
-            startPolling();
-        }
+        // Always poll the website for print jobs while this app is open
+        startPolling();
     }
 
     @Override
@@ -503,14 +501,12 @@ public class MainActivity extends Activity {
         String name = normalizeName(rawName, test);
         String role = normalizeRole(rawRole, test);
 
-        // Ignore duplicate print requests within 8 seconds (deep link + queue race)
+        // Only skip true duplicates after a successful submit (never block pending retries)
         String printKey = name + "|" + role + "|" + (test ? "t" : "p");
         long now = System.currentTimeMillis();
         if (printKey.equals(lastPrintKey) && (now - lastPrintAtMs) < 8000) {
             return;
         }
-        lastPrintKey = printKey;
-        lastPrintAtMs = now;
 
         updatePreview(name, role);
 
@@ -526,7 +522,11 @@ public class MainActivity extends Activity {
         boolean submitted = drawAndCommit(name, role);
         if (!submitted) {
             onPrintFailed();
+            return;
         }
+
+        lastPrintKey = printKey;
+        lastPrintAtMs = now;
     }
 
     private void flushPendingPrint() {

@@ -23,24 +23,19 @@ function writeReady(ready: boolean) {
   }
 }
 
-/** Fire the deep link via hidden iframe (won't navigate away). */
-function launchCompanion(host: string, query?: Record<string, string>) {
-  const params = new URLSearchParams(query);
-  const path = params.toString() ? `${host}?${params.toString()}` : host;
-  const href = `studiok://${path}`;
+/** Queue a print job on the server. Android app polls and prints once. */
+async function enqueueJob(name: string, role: string) {
+  const response = await fetch("/api/print-queue", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, role }),
+  });
 
-  if (typeof document !== "undefined") {
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.src = href;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      try {
-        document.body.removeChild(iframe);
-      } catch {
-        /* ignore */
-      }
-    }, 2000);
+  if (!response.ok) {
+    throw new PrinterError(
+      "print_failed",
+      "Could not queue the badge for printing.",
+    );
   }
 }
 
@@ -79,16 +74,15 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
   }
 
   async printGuest(name: string, role?: string): Promise<void> {
-    // Only deep link — do NOT also enqueue (that caused double prints on tablet)
-    const query: Record<string, string> = { name };
-    if (role) query.role = role;
-    launchCompanion("print", query);
+    // Queue only — no deep link (deep link + queue caused double prints;
+    // deep-link-only stopped printing on the tablet).
+    await enqueueJob(name, role ?? "");
     this.state = "connected";
     writeReady(true);
   }
 
   async printTest(): Promise<void> {
-    launchCompanion("test");
+    await enqueueJob("TEST PRINT", "FOUNDER");
     this.state = "connected";
     writeReady(true);
   }

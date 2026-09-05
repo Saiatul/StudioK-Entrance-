@@ -1,26 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Simple in-memory print queue.
- * POST: PWA adds a job.  GET: Android app polls & picks up jobs.
- */
-type PrintJob = { name: string; role: string; ts: number };
-
-const queue: PrintJob[] = [];
+import { claimPrintJobs, enqueuePrintJob } from "@/lib/db/print-jobs";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const job: PrintJob = {
-    name: body.name ?? "GUEST",
-    role: body.role ?? "",
-    ts: Date.now(),
-  };
-  queue.push(job);
-  return NextResponse.json({ ok: true, queued: queue.length });
+  try {
+    const body = await req.json();
+    const job = await enqueuePrintJob(
+      String(body.name ?? "GUEST"),
+      String(body.role ?? ""),
+    );
+    return NextResponse.json({ ok: true, job });
+  } catch (error) {
+    console.error("print-queue POST failed", error);
+    return NextResponse.json(
+      { error: "Failed to queue print job" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function GET() {
-  // Return and drain all pending jobs
-  const jobs = queue.splice(0, queue.length);
-  return NextResponse.json({ jobs });
+  try {
+    const jobs = await claimPrintJobs();
+    return NextResponse.json({
+      jobs: jobs.map((j) => ({ name: j.name, role: j.role, id: j.id })),
+    });
+  } catch (error) {
+    console.error("print-queue GET failed", error);
+    return NextResponse.json({ jobs: [] }, { status: 500 });
+  }
 }
