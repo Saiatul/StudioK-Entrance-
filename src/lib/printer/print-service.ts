@@ -25,9 +25,8 @@ function loadSettings(): PrintSettings {
     const raw = window.localStorage.getItem(PRINT_SETTINGS_KEY);
     if (!raw) return defaults;
     const merged = { ...defaults, ...JSON.parse(raw) } as PrintSettings;
-    if (defaults.adapterId === "lpapi" && merged.adapterId === "web-bluetooth") {
-      merged.adapterId = "lpapi";
-    }
+    // Always use the companion printer app for SEZNIK badges
+    merged.adapterId = "lpapi";
     return merged;
   } catch {
     return defaults;
@@ -158,28 +157,17 @@ class PrintService {
   }
 
   async printTestLabel(): Promise<void> {
-    if (this.settings.adapterId === "lpapi") {
-      await this.lpapi.printTest();
-      this.notify();
-      return;
-    }
-
-    const label = await renderTestLabelRaster();
-    await this.printRaster(label);
+    // Always use the companion queue (SEZNIK prints via studioK Printer app)
+    await this.lpapi.printTest();
+    this.updateSettings({ adapterId: "lpapi" });
+    this.notify();
   }
 
   async printGuestBadge(guest: PrintableGuest): Promise<void> {
-    if (this.settings.adapterId === "lpapi") {
-      await this.lpapi.printGuest(guest.name, guest.role);
-      this.notify();
-      return;
-    }
-
-    const label = await renderLabelRaster({
-      name: guest.name,
-      role: guest.role,
-    });
-    await this.printRaster(label);
+    // Always use the companion queue — do not depend on adapter dropdown
+    await this.lpapi.printGuest(guest.name, guest.role);
+    this.updateSettings({ adapterId: "lpapi" });
+    this.notify();
   }
 }
 

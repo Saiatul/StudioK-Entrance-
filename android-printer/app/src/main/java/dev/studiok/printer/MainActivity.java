@@ -250,6 +250,13 @@ public class MainActivity extends Activity {
         ui.removeCallbacks(pollRunnable);
     }
 
+    /** Run one poll cycle immediately (used when PWA wakes the app). */
+    private void pollOnceNow() {
+        startPolling();
+        ui.removeCallbacks(pollRunnable);
+        ui.post(pollRunnable);
+    }
+
     private void handleIntent(Intent intent) {
         if (intent == null) {
             return;
@@ -263,20 +270,17 @@ public class MainActivity extends Activity {
         String host = uri.getHost();
         if ("connect".equals(host)) {
             startConnect(true);
+            startPolling();
             return;
         }
         if ("disconnect".equals(host)) {
             disconnectPrinter();
             return;
         }
-        if ("test".equals(host)) {
-            printBadge(getString(R.string.test_name), "Founder", true);
-            return;
-        }
-        if ("print".equals(host)) {
-            String name = uri.getQueryParameter("name");
-            String role = uri.getQueryParameter("role");
-            printBadge(name, role, false);
+        // wake / print / test: do NOT print from the URL (avoids double prints).
+        // Just wake polling so the queued DB job is claimed once.
+        if ("wake".equals(host) || "print".equals(host) || "test".equals(host)) {
+            pollOnceNow();
         }
     }
 

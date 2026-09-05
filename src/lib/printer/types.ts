@@ -74,7 +74,7 @@ export type PrintSettings = {
 };
 
 export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
-  adapterId: "web-bluetooth",
+  adapterId: "lpapi",
   protocol: "tspl",
   rotation: 0,
   gapMm: DEFAULT_GAP_MM,
@@ -87,10 +87,7 @@ export function isAndroidTablet(): boolean {
 }
 
 export function getDefaultPrintSettings(): PrintSettings {
-  return {
-    ...DEFAULT_PRINT_SETTINGS,
-    adapterId: isAndroidTablet() ? "lpapi" : "web-bluetooth",
-  };
+  return { ...DEFAULT_PRINT_SETTINGS };
 }
 
 export interface PrinterAdapter {

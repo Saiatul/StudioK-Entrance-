@@ -38,6 +38,7 @@
                 <data android:scheme="studiok" android:host="connect" />
                 <data android:scheme="studiok" android:host="print" />
                 <data android:scheme="studiok" android:host="test" />
+                <data android:scheme="studiok" android:host="wake" />
                 <data android:scheme="studiok" android:host="disconnect" />
             </intent-filter>
         </activity>

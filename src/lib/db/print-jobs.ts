@@ -1,6 +1,6 @@
 import { getPool } from "@/lib/db/client";
 
-const TABLE = '"PrintJobs"';
+const TABLE = "print_jobs";
 
 let schemaReady = false;
 
@@ -43,9 +43,9 @@ export async function enqueuePrintJob(
   );
   const row = result.rows[0];
   return {
-    id: row.id,
+    id: Number(row.id),
     name: row.name,
-    role: row.role,
+    role: row.role ?? "",
     created_at:
       row.created_at instanceof Date
         ? row.created_at.toISOString()
@@ -59,26 +59,23 @@ export async function claimPrintJobs(limit = 1): Promise<PrintJob[]> {
   const pool = getPool();
   const result = await pool.query(
     `
-      WITH claimed AS (
-        DELETE FROM ${TABLE}
-        WHERE id IN (
-          SELECT id FROM ${TABLE}
-          ORDER BY created_at ASC, id ASC
-          FOR UPDATE SKIP LOCKED
-          LIMIT $1
-        )
-        RETURNING id, name, role, created_at
+      DELETE FROM ${TABLE}
+      WHERE id = (
+        SELECT id FROM ${TABLE}
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1
       )
-      SELECT id, name, role, created_at FROM claimed
-      ORDER BY created_at ASC, id ASC
+      RETURNING id, name, role, created_at
     `,
-    [limit],
   );
 
+  // limit currently always 1; keep signature for callers
+  void limit;
+
   return result.rows.map((row) => ({
-    id: row.id,
+    id: Number(row.id),
     name: row.name,
-    role: row.role,
+    role: row.role ?? "",
     created_at:
       row.created_at instanceof Date
         ? row.created_at.toISOString()
