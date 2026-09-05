@@ -7,6 +7,7 @@ function AdminLoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -67,18 +68,28 @@ function AdminLoginForm() {
         />
       </label>
 
-      <label className="mt-4 block">
+      <div className="mt-4">
         <span className="field-label">Password</span>
-        <input
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="field-control w-full"
-          placeholder="Password"
-        />
-      </label>
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="field-control w-full pr-20"
+            placeholder="Password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-sm font-medium text-cream/60 transition hover:text-cream"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
+      </div>
 
       {error ? <p className="mt-4 text-sm text-rose-300">{error}</p> : null}
 
