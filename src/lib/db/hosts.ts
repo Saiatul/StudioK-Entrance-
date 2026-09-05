@@ -8,10 +8,28 @@ export type HostRecord = {
   email: string;
 };
 
-const DEFAULT_HOSTS: Array<{ name: string; email: string }> = [
+/** These hosts always appear in check-in and cannot be deleted. */
+export const PROTECTED_HOSTS: Array<{ name: string; email: string }> = [
   { name: "Amir Khan", email: "amir@studiok.dev" },
   { name: "Prince Sah", email: "prince@studiok.dev" },
 ];
+
+const PROTECTED_EMAILS = new Set(
+  PROTECTED_HOSTS.map((h) => h.email.toLowerCase()),
+);
+
+export function isProtectedHostEmail(email: string): boolean {
+  return PROTECTED_EMAILS.has(email.trim().toLowerCase());
+}
+
+export function isProtectedHost(host: {
+  name?: string;
+  email?: string;
+}): boolean {
+  if (host.email && isProtectedHostEmail(host.email)) return true;
+  const name = (host.name ?? "").trim().toLowerCase();
+  return PROTECTED_HOSTS.some((h) => h.name.toLowerCase() === name);
+}
 
 let schemaReady = false;
 
@@ -28,12 +46,12 @@ export async function ensureHostsSchema(): Promise<void> {
     );
   `);
 
-  for (const host of DEFAULT_HOSTS) {
+  for (const host of PROTECTED_HOSTS) {
     await pool.query(
       `
         INSERT INTO ${TABLE} (name, email)
         VALUES ($1, $2)
-        ON CONFLICT (name) DO NOTHING
+        ON CONFLICT (name) DO UPDATE SET email = EXCLUDED.email
       `,
       [host.name, host.email],
     );
@@ -87,12 +105,37 @@ export async function createHost(
   };
 }
 
-export async function deleteHost(id: number): Promise<boolean> {
+export async function getHostById(id: number): Promise<HostRecord | null> {
   await ensureHostsSchema();
+  const pool = getPool();
+  const result = await pool.query(
+    `SELECT id, name, email FROM ${TABLE} WHERE id = $1 LIMIT 1`,
+    [id],
+  );
+  if (!result.rows[0]) return null;
+  const row = result.rows[0];
+  return {
+    id: Number(row.id),
+    name: row.name,
+    email: row.email,
+  };
+}
+
+export type DeleteHostResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "protected" };
+
+export async function deleteHost(id: number): Promise<DeleteHostResult> {
+  await ensureHostsSchema();
+  const existing = await getHostById(id);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (isProtectedHost(existing)) return { ok: false, reason: "protected" };
+
   const pool = getPool();
   const result = await pool.query(
     `DELETE FROM ${TABLE} WHERE id = $1 RETURNING id`,
     [id],
   );
-  return result.rows.length > 0;
+  if (result.rows.length === 0) return { ok: false, reason: "not_found" };
+  return { ok: true };
 }

@@ -13,8 +13,17 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   try {
-    const deleted = await deleteHost(id);
-    if (!deleted) {
+    const result = await deleteHost(id);
+    if (!result.ok && result.reason === "protected") {
+      return NextResponse.json(
+        {
+          error:
+            "Amir and Prince cannot be deleted. Only they have admin access.",
+        },
+        { status: 403 },
+      );
+    }
+    if (!result.ok) {
       return NextResponse.json({ error: "Host not found." }, { status: 404 });
     }
     return NextResponse.json({ ok: true });

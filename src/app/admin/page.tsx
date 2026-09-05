@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ROLES } from "@/types/registration";
 
+function isProtectedHost(host: { name: string; email: string }) {
+  const email = host.email.trim().toLowerCase();
+  return email === "amir@studiok.dev" || email === "prince@studiok.dev";
+}
+
 type Row = {
   id: number;
   name: string;
@@ -113,7 +118,11 @@ export default function AdminPage() {
     }
   }
 
-  async function removeHost(id: number, name: string) {
+  async function removeHost(id: number, name: string, email: string) {
+    if (isProtectedHost({ name, email })) {
+      setHostError("Amir and Prince cannot be deleted.");
+      return;
+    }
     if (!window.confirm(`Delete host “${name}”?`)) return;
 
     setHostBusy(true);
@@ -217,7 +226,8 @@ export default function AdminPage() {
       <section className="mb-8 rounded-xl border border-line bg-panel p-5">
         <h2 className="text-lg font-semibold text-cream">Hosts</h2>
         <p className="mt-1 text-sm text-cream/50">
-          Add hosts here. They appear in the check-in Host dropdown.
+          Add check-in hosts here. Only prince@studiok.dev and amir@studiok.dev
+          can sign in to admin. Amir and Prince cannot be deleted.
         </p>
 
         <form
@@ -283,14 +293,20 @@ export default function AdminPage() {
                     </td>
                     <td className="px-4 py-3 text-cream/80">{host.email}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        disabled={hostBusy}
-                        onClick={() => removeHost(host.id, host.name)}
-                        className="rounded-md px-3 py-1.5 text-sm text-rose-300 transition hover:bg-rose-500/10 disabled:opacity-60"
-                      >
-                        Delete
-                      </button>
+                      {isProtectedHost(host) ? (
+                        <span className="text-xs text-cream/35">Protected</span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={hostBusy}
+                          onClick={() =>
+                            removeHost(host.id, host.name, host.email)
+                          }
+                          className="rounded-md px-3 py-1.5 text-sm text-rose-300 transition hover:bg-rose-500/10 disabled:opacity-60"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
