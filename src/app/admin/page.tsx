@@ -36,6 +36,7 @@ export default function AdminPage() {
   const [hostBusy, setHostBusy] = useState(false);
   const [hostMessage, setHostMessage] = useState("");
   const [hostError, setHostError] = useState("");
+  const [showHostsPanel, setShowHostsPanel] = useState(false);
 
   function loadRegistrations() {
     setLoading(true);
@@ -177,16 +178,25 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-ink p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-cream">
-            <span className="text-gold">studioK</span> Admin
-          </h1>
-          <p className="mt-1 text-sm text-cream/50">
+        <div className="flex items-center gap-4">
+          <img
+            src="/branding/studiok-logo.png"
+            alt="studioK"
+            className="h-12 w-auto object-contain sm:h-14"
+          />
+          <p className="text-sm text-cream/50">
             {filtered.length} of {rows.length} registration
             {rows.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setShowHostsPanel((v) => !v)}
+            className="rounded-lg bg-panel px-4 py-2 text-sm text-cream transition hover:bg-panel/80"
+          >
+            {showHostsPanel ? "Hide hosts" : "Manage hosts"}
+          </button>
           <button
             onClick={signOut}
             className="rounded-lg bg-panel px-4 py-2 text-sm text-cream/70 transition hover:bg-panel/80"
@@ -202,7 +212,8 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Hosts management */}
+      {/* Hosts management — hidden until Manage hosts is clicked */}
+      {showHostsPanel ? (
       <section className="mb-8 rounded-xl border border-line bg-panel p-5">
         <h2 className="text-lg font-semibold text-cream">Hosts</h2>
         <p className="mt-1 text-sm text-cream/50">
@@ -288,6 +299,7 @@ export default function AdminPage() {
           </table>
         </div>
       </section>
+      ) : null}
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <input
