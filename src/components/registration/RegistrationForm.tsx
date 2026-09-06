@@ -217,11 +217,14 @@ export function RegistrationForm() {
               error={errors.mobile}
             />
             <input
-              inputMode="tel"
+              inputMode="numeric"
               autoComplete="tel-national"
-              placeholder="Mobile number"
+              placeholder="10-digit mobile number"
               value={mobile}
-              onChange={(event) => setMobile(event.target.value)}
+              maxLength={10}
+              onChange={(event) =>
+                setMobile(event.target.value.replace(/\D/g, "").slice(0, 10))
+              }
               className={`field-control min-w-0 flex-1 ${
                 errors.mobile ? "border-rose-400/70" : ""
               }`}

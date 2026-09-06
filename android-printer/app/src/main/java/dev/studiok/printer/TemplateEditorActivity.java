@@ -5,7 +5,6 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -19,18 +18,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Full-screen drag-and-drop badge template editor.
- * Users can move and resize Logo, Name, and Role on the 50×20mm canvas,
- * adjust font sizes, then save. Every future print uses the saved positions.
+ * Drag-and-drop badge template editor for logo, name, role, and associated-to.
  */
 public class TemplateEditorActivity extends Activity {
 
     private static final String PREFS = "studiok.printer";
 
-    // SharedPreferences keys for each element (x, y, w, h, font)
-    private static final String P_LOGO  = "tpl2_logo_";
-    private static final String P_NAME  = "tpl2_name_";
-    private static final String P_ROLE  = "tpl2_role_";
+    // tpl3_ keys = new layout including Associated-to (ignores old tpl2_ prefs)
+    private static final String P_LOGO = "tpl3_logo_";
+    private static final String P_NAME = "tpl3_name_";
+    private static final String P_ROLE = "tpl3_role_";
+    private static final String P_ASSOC = "tpl3_assoc_";
 
     private SharedPreferences prefs;
     private LabelCanvasView canvas;
@@ -57,11 +55,13 @@ public class TemplateEditorActivity extends Activity {
         canvas.setElements(loadElements());
 
         canvas.setOnTemplateChangedListener(() -> {
-            // Show properties panel when an element is selected
             TemplateElement sel = canvas.getSelected();
             if (sel != null) {
                 propsPanel.setVisibility(View.VISIBLE);
-                tvSelectedLabel.setText(sel.kind.name());
+                String label = sel.kind == TemplateElement.Kind.ASSOCIATED
+                        ? "ASSOCIATED TO"
+                        : sel.kind.name();
+                tvSelectedLabel.setText(label);
                 etFontSize.setText(String.valueOf(sel.fontMm));
                 etFontSize.setEnabled(sel.kind != TemplateElement.Kind.LOGO);
             } else {
@@ -76,7 +76,8 @@ public class TemplateEditorActivity extends Activity {
                 float f = Float.parseFloat(etFontSize.getText().toString());
                 sel.fontMm = Math.max(1f, Math.min(10f, f));
                 canvas.invalidate();
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException ignored) {
+            }
         });
 
         btnReset.setOnClickListener(v -> {
@@ -93,13 +94,12 @@ public class TemplateEditorActivity extends Activity {
         });
     }
 
-    // ── Persistence ─────────────────────────────────────────────────────
-
     private List<TemplateElement> loadElements() {
         List<TemplateElement> list = new ArrayList<>();
         list.add(loadElem(P_LOGO, TemplateElement.defaultLogo()));
         list.add(loadElem(P_NAME, TemplateElement.defaultName()));
         list.add(loadElem(P_ROLE, TemplateElement.defaultRole()));
+        list.add(loadElem(P_ASSOC, TemplateElement.defaultAssociated()));
         return list;
     }
 
@@ -127,9 +127,14 @@ public class TemplateEditorActivity extends Activity {
 
     private static String prefixFor(TemplateElement.Kind kind) {
         switch (kind) {
-            case LOGO: return P_LOGO;
-            case NAME: return P_NAME;
-            case ROLE: return P_ROLE;
+            case LOGO:
+                return P_LOGO;
+            case NAME:
+                return P_NAME;
+            case ROLE:
+                return P_ROLE;
+            case ASSOCIATED:
+                return P_ASSOC;
         }
         return P_NAME;
     }
@@ -139,6 +144,7 @@ public class TemplateEditorActivity extends Activity {
         list.add(TemplateElement.defaultLogo());
         list.add(TemplateElement.defaultName());
         list.add(TemplateElement.defaultRole());
+        list.add(TemplateElement.defaultAssociated());
         return list;
     }
 
@@ -150,7 +156,12 @@ public class TemplateEditorActivity extends Activity {
         } catch (IOException e) {
             return null;
         } finally {
-            if (stream != null) try { stream.close(); } catch (IOException ignored) {}
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException ignored) {
+                }
+            }
         }
     }
 }

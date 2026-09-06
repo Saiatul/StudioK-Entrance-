@@ -136,6 +136,10 @@ public class LabelCanvasView extends View {
                     textPaint.setTextSize(elem.fontMm * sy);
                     canvas.drawText("FOUNDER", r.left, r.top + elem.fontMm * sy, textPaint);
                     break;
+                case ASSOCIATED:
+                    textPaint.setTextSize(elem.fontMm * sy);
+                    canvas.drawText("COMPANY", r.left, r.top + elem.fontMm * sy, textPaint);
+                    break;
             }
 
             // Selection highlight

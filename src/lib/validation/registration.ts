@@ -42,8 +42,8 @@ export function validateRegistration(
   }
 
   const mobileDigits = digitsOnly(mobile);
-  if (!mobile || mobileDigits.length < 6 || mobileDigits.length > 15) {
-    errors.mobile = "Please enter a valid mobile number.";
+  if (!mobile || mobileDigits.length !== 10) {
+    errors.mobile = "Please enter a 10-digit mobile number.";
   }
 
   if (!host || host.length > 120) {
@@ -74,7 +74,7 @@ export function validateRegistration(
     data: {
       name,
       country_code: countryCode,
-      mobile,
+      mobile: mobileDigits,
       email,
       host,
       role,

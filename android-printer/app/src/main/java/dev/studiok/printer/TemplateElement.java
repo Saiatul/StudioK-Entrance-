@@ -7,7 +7,7 @@ import android.graphics.RectF;
  * All coordinates are in millimetres relative to the label (50×20).
  */
 public class TemplateElement {
-    public enum Kind { LOGO, NAME, ROLE }
+    public enum Kind { LOGO, NAME, ROLE, ASSOCIATED }
 
     public final Kind kind;
     /** Position and size in mm. */
@@ -29,16 +29,20 @@ public class TemplateElement {
         return new RectF(xMm * sx, yMm * sy, (xMm + wMm) * sx, (yMm + hMm) * sy);
     }
 
-    /** Defaults for 50×20mm two-column layout. */
+    /** Defaults for 50×20mm two-column layout with associated-to. */
     public static TemplateElement defaultLogo() {
         return new TemplateElement(Kind.LOGO, 1.5f, 2f, 21f, 16f, 0);
     }
 
     public static TemplateElement defaultName() {
-        return new TemplateElement(Kind.NAME, 25f, 1.5f, 23f, 7f, 4.2f);
+        return new TemplateElement(Kind.NAME, 25f, 1.2f, 23f, 6.5f, 4.0f);
     }
 
     public static TemplateElement defaultRole() {
-        return new TemplateElement(Kind.ROLE, 25f, 9.5f, 23f, 4.5f, 2.8f);
+        return new TemplateElement(Kind.ROLE, 25f, 8.5f, 23f, 4.2f, 2.8f);
+    }
+
+    public static TemplateElement defaultAssociated() {
+        return new TemplateElement(Kind.ASSOCIATED, 25f, 13.5f, 23f, 4.0f, 2.3f);
     }
 }

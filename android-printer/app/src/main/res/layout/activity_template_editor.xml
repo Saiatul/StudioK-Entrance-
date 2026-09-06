@@ -21,7 +21,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:gravity="center"
-        android:text="Drag to move · Corner handle to resize"
+        android:text="Drag Logo / Name / Role / Associated · corner to resize"
         android:textColor="@color/muted"
         android:textSize="13sp" />
 

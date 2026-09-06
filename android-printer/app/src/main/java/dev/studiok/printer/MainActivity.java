@@ -55,10 +55,11 @@ public class MainActivity extends Activity {
     private static final String DEFAULT_SERVER = "https://studiok-entrance-production.up.railway.app";
     private static final long POLL_INTERVAL_MS = 3000;
 
-    // New drag-and-drop template keys (tpl2_ prefix)
-    private static final String P_LOGO = "tpl2_logo_";
-    private static final String P_NAME = "tpl2_name_";
-    private static final String P_ROLE = "tpl2_role_";
+    // Template keys (tpl3_ includes Associated-to)
+    private static final String P_LOGO = "tpl3_logo_";
+    private static final String P_NAME = "tpl3_name_";
+    private static final String P_ROLE = "tpl3_role_";
+    private static final String P_ASSOC = "tpl3_assoc_";
     private static final double LABEL_WIDTH_MM = 50;
     private static final double LABEL_HEIGHT_MM = 20;
     private static final int LABEL_GAP_TYPE = 2;
@@ -132,6 +133,7 @@ public class MainActivity extends Activity {
     private TemplateElement tplLogo = TemplateElement.defaultLogo();
     private TemplateElement tplName = TemplateElement.defaultName();
     private TemplateElement tplRole = TemplateElement.defaultRole();
+    private TemplateElement tplAssoc = TemplateElement.defaultAssociated();
 
     private final LPAPI.Callback callback = new LPAPI.Callback() {
         @Override
@@ -580,12 +582,20 @@ public class MainActivity extends Activity {
 
         // Role below name
         double roleFontMm = tplRole.fontMm > 0 ? tplRole.fontMm : 2.8;
-        api.drawTextRegular(role, tplRole.xMm, tplRole.yMm, tplRole.wMm, Math.min(tplRole.hMm, 4.5), roleFontMm, 0);
+        api.drawTextRegular(role, tplRole.xMm, tplRole.yMm, tplRole.wMm, tplRole.hMm, roleFontMm, 0);
 
         // Associated-to below role
         if (!TextUtils.isEmpty(associated)) {
-            double assocY = Math.min(tplRole.yMm + 4.8, LABEL_HEIGHT_MM - 4.5);
-            api.drawTextRegular(associated, tplRole.xMm, assocY, tplRole.wMm, 4.0, 2.3, 0);
+            double assocFont = tplAssoc.fontMm > 0 ? tplAssoc.fontMm : 2.3;
+            api.drawTextRegular(
+                    associated,
+                    tplAssoc.xMm,
+                    tplAssoc.yMm,
+                    tplAssoc.wMm,
+                    tplAssoc.hMm,
+                    assocFont,
+                    0
+            );
         }
 
         return api.commitJob();
@@ -641,9 +651,14 @@ public class MainActivity extends Activity {
 
         // Associated to
         if (!TextUtils.isEmpty(associated)) {
-            paint.setTextSize(2.3f * sy);
-            float assocY = (float) Math.min(tplRole.yMm + 4.8, LABEL_HEIGHT_MM - 1.5);
-            canvas.drawText(associated, tplRole.xMm * sx, assocY * sy + 2.3f * sy, paint);
+            double af = tplAssoc.fontMm > 0 ? tplAssoc.fontMm : 2.3;
+            paint.setTextSize((float) (af * sy));
+            canvas.drawText(
+                    associated,
+                    tplAssoc.xMm * sx,
+                    tplAssoc.yMm * sy + (float) (af * sy),
+                    paint
+            );
         }
 
         previewImage.setImageBitmap(preview);
@@ -654,6 +669,7 @@ public class MainActivity extends Activity {
         tplLogo = loadElem(P_LOGO, TemplateElement.defaultLogo());
         tplName = loadElem(P_NAME, TemplateElement.defaultName());
         tplRole = loadElem(P_ROLE, TemplateElement.defaultRole());
+        tplAssoc = loadElem(P_ASSOC, TemplateElement.defaultAssociated());
     }
 
     private TemplateElement loadElem(String prefix, TemplateElement def) {
