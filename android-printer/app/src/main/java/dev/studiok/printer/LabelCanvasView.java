@@ -15,30 +15,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Custom View that renders a 50×20mm badge at screen scale and lets the user
- * drag each element (logo / name / role) to reposition it on the label.
- * Long-press an element to resize (toggles between move and resize mode).
+ * Badge canvas editor: drag/resize elements, tap × to remove, add back later.
  */
 public class LabelCanvasView extends View {
 
     private static final float LABEL_W_MM = 50f;
     private static final float LABEL_H_MM = 20f;
+    private static final float CROSS_SIZE_PX = 28f;
 
     private final List<TemplateElement> elements = new ArrayList<>();
     private Bitmap logoBitmap;
 
-    // Drawing helpers
     private final Paint bgPaint = new Paint();
     private final Paint borderPaint = new Paint();
     private final Paint selPaint = new Paint();
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint crossBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint crossPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-    // Scale: pixels-per-mm (computed in onSizeChanged)
     private float sx, sy;
-    private float offsetX, offsetY; // centering offset
+    private float offsetX, offsetY;
 
-    // Interaction state
     private TemplateElement selected;
     private boolean resizeMode;
     private float touchStartX, touchStartY;
@@ -50,7 +48,9 @@ public class LabelCanvasView extends View {
         void onTemplateChanged();
     }
 
-    public LabelCanvasView(Context context) { this(context, null); }
+    public LabelCanvasView(Context context) {
+        this(context, null);
+    }
 
     public LabelCanvasView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -70,6 +70,14 @@ public class LabelCanvasView extends View {
 
         handlePaint.setColor(Color.parseColor("#E07030"));
         handlePaint.setStyle(Paint.Style.FILL);
+
+        crossBgPaint.setColor(Color.parseColor("#C62828"));
+        crossBgPaint.setStyle(Paint.Style.FILL);
+
+        crossPaint.setColor(Color.WHITE);
+        crossPaint.setStrokeWidth(3f);
+        crossPaint.setStyle(Paint.Style.STROKE);
+        crossPaint.setStrokeCap(Paint.Cap.ROUND);
 
         textPaint.setColor(Color.BLACK);
     }
@@ -94,6 +102,43 @@ public class LabelCanvasView extends View {
         listener = l;
     }
 
+    public TemplateElement getSelected() {
+        return selected;
+    }
+
+    public boolean hasKind(TemplateElement.Kind kind) {
+        for (TemplateElement e : elements) {
+            if (e.kind == kind && e.visible) return true;
+        }
+        return false;
+    }
+
+    public void hideElement(TemplateElement elem) {
+        if (elem == null) return;
+        elem.visible = false;
+        if (selected == elem) selected = null;
+        invalidate();
+        if (listener != null) listener.onTemplateChanged();
+    }
+
+    public void showKind(TemplateElement.Kind kind) {
+        for (TemplateElement e : elements) {
+            if (e.kind == kind) {
+                e.visible = true;
+                selected = e;
+                invalidate();
+                if (listener != null) listener.onTemplateChanged();
+                return;
+            }
+        }
+        TemplateElement created = TemplateElement.defaultFor(kind);
+        created.visible = true;
+        elements.add(created);
+        selected = created;
+        invalidate();
+        if (listener != null) listener.onTemplateChanged();
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldW, int oldH) {
         super.onSizeChanged(w, h, oldW, oldH);
@@ -110,13 +155,17 @@ public class LabelCanvasView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // Background
-        RectF labelRect = new RectF(offsetX, offsetY,
-                offsetX + LABEL_W_MM * sx, offsetY + LABEL_H_MM * sy);
+        RectF labelRect = new RectF(
+                offsetX,
+                offsetY,
+                offsetX + LABEL_W_MM * sx,
+                offsetY + LABEL_H_MM * sy
+        );
         canvas.drawRect(labelRect, bgPaint);
         canvas.drawRect(labelRect, borderPaint);
 
         for (TemplateElement elem : elements) {
+            if (!elem.visible) continue;
             RectF r = toScreen(elem);
             switch (elem.kind) {
                 case LOGO:
@@ -142,14 +191,29 @@ public class LabelCanvasView extends View {
                     break;
             }
 
-            // Selection highlight
+            // Always show remove × on every visible element
+            drawCross(canvas, crossRect(r));
+
             if (elem == selected) {
                 canvas.drawRect(r, selPaint);
-                // Resize handle (bottom-right corner)
                 float hs = 14f;
                 canvas.drawRect(r.right - hs, r.bottom - hs, r.right, r.bottom, handlePaint);
             }
         }
+    }
+
+    private void drawCross(Canvas canvas, RectF cross) {
+        canvas.drawOval(cross, crossBgPaint);
+        float pad = 7f;
+        canvas.drawLine(cross.left + pad, cross.top + pad, cross.right - pad, cross.bottom - pad, crossPaint);
+        canvas.drawLine(cross.right - pad, cross.top + pad, cross.left + pad, cross.bottom - pad, crossPaint);
+    }
+
+    private RectF crossRect(RectF elemRect) {
+        float size = CROSS_SIZE_PX;
+        float cx = Math.min(elemRect.right, offsetX + LABEL_W_MM * sx) - 2f;
+        float cy = Math.max(elemRect.top, offsetY) + 2f;
+        return new RectF(cx - size, cy, cx, cy + size);
     }
 
     @Override
@@ -162,8 +226,17 @@ public class LabelCanvasView extends View {
                 touchStartX = x;
                 touchStartY = y;
 
-                // Check resize handle first
-                if (selected != null) {
+                // × remove hit first (any visible element)
+                for (int i = elements.size() - 1; i >= 0; i--) {
+                    TemplateElement e = elements.get(i);
+                    if (!e.visible) continue;
+                    if (crossRect(toScreen(e)).contains(x, y)) {
+                        hideElement(e);
+                        return true;
+                    }
+                }
+
+                if (selected != null && selected.visible) {
                     RectF sr = toScreen(selected);
                     float hs = 20f;
                     if (x >= sr.right - hs && y >= sr.bottom - hs && x <= sr.right + 8 && y <= sr.bottom + 8) {
@@ -174,13 +247,13 @@ public class LabelCanvasView extends View {
                     }
                 }
 
-                // Hit-test elements (reverse order for z)
                 resizeMode = false;
                 TemplateElement hit = null;
                 for (int i = elements.size() - 1; i >= 0; i--) {
-                    RectF r = toScreen(elements.get(i));
-                    if (r.contains(x, y)) {
-                        hit = elements.get(i);
+                    TemplateElement e = elements.get(i);
+                    if (!e.visible) continue;
+                    if (toScreen(e).contains(x, y)) {
+                        hit = e;
                         break;
                     }
                 }
@@ -190,10 +263,11 @@ public class LabelCanvasView extends View {
                     elemStartY = hit.yMm;
                 }
                 invalidate();
+                if (listener != null) listener.onTemplateChanged();
                 return true;
 
             case MotionEvent.ACTION_MOVE:
-                if (selected == null) return true;
+                if (selected == null || !selected.visible) return true;
                 float dx = (x - touchStartX) / sx;
                 float dy = (y - touchStartY) / sy;
                 if (resizeMode) {
@@ -213,11 +287,6 @@ public class LabelCanvasView extends View {
                 return true;
         }
         return super.onTouchEvent(event);
-    }
-
-    /** Returns the currently selected element or null. */
-    public TemplateElement getSelected() {
-        return selected;
     }
 
     private RectF toScreen(TemplateElement e) {

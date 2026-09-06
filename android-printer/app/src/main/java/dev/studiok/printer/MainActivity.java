@@ -130,6 +130,7 @@ public class MainActivity extends Activity {
     };
 
     // Drag-and-drop template elements (loaded from SharedPreferences)
+    // Drag-and-drop template elements (loaded from SharedPreferences)
     private TemplateElement tplLogo = TemplateElement.defaultLogo();
     private TemplateElement tplName = TemplateElement.defaultName();
     private TemplateElement tplRole = TemplateElement.defaultRole();
@@ -569,23 +570,24 @@ public class MainActivity extends Activity {
     private boolean drawAndCommit(String name, String role, String associated) {
         api.startJob(LABEL_WIDTH_MM, LABEL_HEIGHT_MM, 0);
 
-        if (logoMark != null) {
+        if (logoMark != null && tplLogo.visible) {
             api.drawBitmap(logoMark, tplLogo.xMm, tplLogo.yMm, tplLogo.wMm, tplLogo.hMm);
         }
 
         api.setItemHorizontalAlignment(0);
         api.setItemVerticalAlignment(0);
 
-        // Name on top
-        double nameFontMm = tplName.fontMm > 0 ? tplName.fontMm : nameFontMm(name);
-        api.drawTextRegular(name, tplName.xMm, tplName.yMm, tplName.wMm, tplName.hMm, nameFontMm, 1);
+        if (tplName.visible) {
+            double nameFontMm = tplName.fontMm > 0 ? tplName.fontMm : nameFontMm(name);
+            api.drawTextRegular(name, tplName.xMm, tplName.yMm, tplName.wMm, tplName.hMm, nameFontMm, 1);
+        }
 
-        // Role below name
-        double roleFontMm = tplRole.fontMm > 0 ? tplRole.fontMm : 2.8;
-        api.drawTextRegular(role, tplRole.xMm, tplRole.yMm, tplRole.wMm, tplRole.hMm, roleFontMm, 0);
+        if (tplRole.visible) {
+            double roleFontMm = tplRole.fontMm > 0 ? tplRole.fontMm : 2.8;
+            api.drawTextRegular(role, tplRole.xMm, tplRole.yMm, tplRole.wMm, tplRole.hMm, roleFontMm, 0);
+        }
 
-        // Associated-to below role
-        if (!TextUtils.isEmpty(associated)) {
+        if (tplAssoc.visible && !TextUtils.isEmpty(associated)) {
             double assocFont = tplAssoc.fontMm > 0 ? tplAssoc.fontMm : 2.3;
             api.drawTextRegular(
                     associated,
@@ -631,26 +633,32 @@ public class MainActivity extends Activity {
         canvas.drawColor(Color.WHITE);
 
         // Logo
-        android.graphics.RectF dst = new android.graphics.RectF(
-                tplLogo.xMm * sx, tplLogo.yMm * sy,
-                (tplLogo.xMm + tplLogo.wMm) * sx, (tplLogo.yMm + tplLogo.hMm) * sy);
-        canvas.drawBitmap(logoMark, null, dst, null);
+        if (tplLogo.visible) {
+            android.graphics.RectF dst = new android.graphics.RectF(
+                    tplLogo.xMm * sx, tplLogo.yMm * sy,
+                    (tplLogo.xMm + tplLogo.wMm) * sx, (tplLogo.yMm + tplLogo.hMm) * sy);
+            canvas.drawBitmap(logoMark, null, dst, null);
+        }
 
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(Color.BLACK);
 
         // Name
-        double nf = tplName.fontMm > 0 ? tplName.fontMm : nameFontMm(name);
-        paint.setTextSize((float) (nf * sy));
-        canvas.drawText(name, tplName.xMm * sx, tplName.yMm * sy + (float)(nf * sy), paint);
+        if (tplName.visible) {
+            double nf = tplName.fontMm > 0 ? tplName.fontMm : nameFontMm(name);
+            paint.setTextSize((float) (nf * sy));
+            canvas.drawText(name, tplName.xMm * sx, tplName.yMm * sy + (float)(nf * sy), paint);
+        }
 
         // Role
-        double rf = tplRole.fontMm > 0 ? tplRole.fontMm : 2.8;
-        paint.setTextSize((float) (rf * sy));
-        canvas.drawText(role, tplRole.xMm * sx, tplRole.yMm * sy + (float)(rf * sy), paint);
+        if (tplRole.visible) {
+            double rf = tplRole.fontMm > 0 ? tplRole.fontMm : 2.8;
+            paint.setTextSize((float) (rf * sy));
+            canvas.drawText(role, tplRole.xMm * sx, tplRole.yMm * sy + (float)(rf * sy), paint);
+        }
 
         // Associated to
-        if (!TextUtils.isEmpty(associated)) {
+        if (tplAssoc.visible && !TextUtils.isEmpty(associated)) {
             double af = tplAssoc.fontMm > 0 ? tplAssoc.fontMm : 2.3;
             paint.setTextSize((float) (af * sy));
             canvas.drawText(
@@ -678,7 +686,8 @@ public class MainActivity extends Activity {
         float w = prefs.getFloat(prefix + "w", def.wMm);
         float h = prefs.getFloat(prefix + "h", def.hMm);
         float f = prefs.getFloat(prefix + "f", def.fontMm);
-        return new TemplateElement(def.kind, x, y, w, h, f);
+        boolean vis = prefs.getBoolean(prefix + "vis", true);
+        return new TemplateElement(def.kind, x, y, w, h, f, vis);
     }
 
     private String normalizeName(String rawName, boolean test) {

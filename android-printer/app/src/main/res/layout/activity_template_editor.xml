@@ -21,11 +21,10 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:gravity="center"
-        android:text="Drag Logo / Name / Role / Associated · corner to resize"
+        android:text="Drag to move · corner to resize · × to remove"
         android:textColor="@color/muted"
         android:textSize="13sp" />
 
-    <!-- The drag-and-drop canvas (50×20mm scaled to fit) -->
     <dev.studiok.printer.LabelCanvasView
         android:id="@+id/labelCanvas"
         android:layout_width="match_parent"
@@ -34,7 +33,20 @@
         android:layout_weight="1"
         android:background="@color/panel" />
 
-    <!-- Properties of selected element -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/addBackRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
     <LinearLayout
         android:id="@+id/propsPanel"
         android:layout_width="match_parent"
@@ -54,8 +66,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
 
             <TextView
                 android:layout_width="0dp"
@@ -69,23 +81,22 @@
                 android:id="@+id/etFontSize"
                 android:layout_width="80dp"
                 android:layout_height="wrap_content"
+                android:hint="5.0"
                 android:inputType="numberDecimal"
                 android:textColor="@color/cream"
-                android:textSize="13sp"
-                android:hint="5.0" />
+                android:textSize="13sp" />
 
             <Button
                 android:id="@+id/btnApplyFont"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
+                android:backgroundTint="@color/accent"
                 android:text="Apply"
                 android:textAllCaps="false"
-                android:textSize="12sp"
-                android:backgroundTint="@color/accent" />
+                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Bottom buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -96,8 +107,8 @@
             android:id="@+id/btnReset"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_weight="1"
             android:layout_marginEnd="6dp"
+            android:layout_weight="1"
             android:background="@drawable/btn_panel"
             android:text="Reset"
             android:textAllCaps="false"
@@ -108,8 +119,8 @@
             android:id="@+id/btnSave"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_weight="1"
             android:layout_marginStart="6dp"
+            android:layout_weight="1"
             android:background="@drawable/btn_accent"
             android:text="Save Template"
             android:textAllCaps="false"
