@@ -35,10 +35,10 @@ public class TemplateElement {
     }
 
     public static TemplateElement defaultName() {
-        return new TemplateElement(Kind.NAME, 25f, 2f, 23f, 9f, 5.0f);
+        return new TemplateElement(Kind.NAME, 25f, 1.5f, 23f, 7f, 4.2f);
     }
 
     public static TemplateElement defaultRole() {
-        return new TemplateElement(Kind.ROLE, 25f, 12f, 23f, 6f, 3.0f);
+        return new TemplateElement(Kind.ROLE, 25f, 9.5f, 23f, 4.5f, 2.8f);
     }
 }

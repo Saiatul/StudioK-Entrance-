@@ -17,6 +17,7 @@ type Row = {
   email: string;
   host: string;
   role: string | null;
+  associated_to?: string | null;
   legal_accepted: boolean;
   registered_at: string;
 };
@@ -365,6 +366,7 @@ export default function AdminPage() {
                 <th className="px-4 py-3">Mobile</th>
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Role</th>
+                <th className="px-4 py-3">Associated to</th>
                 <th className="px-4 py-3">Host</th>
                 <th className="px-4 py-3">Legal</th>
                 <th className="px-4 py-3">Registered</th>
@@ -374,7 +376,7 @@ export default function AdminPage() {
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-8 text-center text-cream/40"
                   >
                     {search || roleFilter !== "all" || hostFilter !== "all"
@@ -399,6 +401,11 @@ export default function AdminPage() {
                           {r.role}
                         </span>
                       ) : (
+                        <span className="text-cream/30">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-cream/80">
+                      {r.associated_to || (
                         <span className="text-cream/30">—</span>
                       )}
                     </td>

@@ -23,7 +23,13 @@ export function validateRegistration(
   const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   const host = typeof input.host === "string" ? input.host.trim() : "";
   const role = typeof input.role === "string" ? input.role.trim() : "";
+  const associatedTo =
+    typeof input.associated_to === "string" ? input.associated_to.trim() : "";
   const legalAccepted = input.legal_accepted === true;
+
+  if (!email || !EMAIL_PATTERN.test(email) || email.length > 254) {
+    errors.email = "Please enter a valid email address.";
+  }
 
   if (!name) {
     errors.name = "Please enter your name.";
@@ -40,16 +46,18 @@ export function validateRegistration(
     errors.mobile = "Please enter a valid mobile number.";
   }
 
-  if (!email || !EMAIL_PATTERN.test(email) || email.length > 254) {
-    errors.email = "Please enter a valid email address.";
-  }
-
   if (!host || host.length > 120) {
     errors.host = "Please select a host.";
   }
 
   if (!role || !ROLES.includes(role as (typeof ROLES)[number])) {
     errors.role = "Please select a role.";
+  }
+
+  if (!associatedTo) {
+    errors.associated_to = "Please enter who you are associated to.";
+  } else if (associatedTo.length > 120) {
+    errors.associated_to = "Please enter a shorter company / association.";
   }
 
   if (!legalAccepted) {
@@ -70,6 +78,7 @@ export function validateRegistration(
       email,
       host,
       role,
+      associated_to: associatedTo,
       legal_accepted: true,
     },
   };

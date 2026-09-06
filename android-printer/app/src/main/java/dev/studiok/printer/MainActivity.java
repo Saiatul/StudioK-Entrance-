@@ -79,6 +79,7 @@ public class MainActivity extends Activity {
 
     private String pendingGuestName;
     private String pendingRole;
+    private String pendingAssociated;
     private boolean pendingTest;
     private boolean pendingPicker;
     private boolean connecting;
@@ -114,7 +115,8 @@ public class MainActivity extends Activity {
                                 JSONObject job = jobs.getJSONObject(i);
                                 String name = job.optString("name", "GUEST");
                                 String role = job.optString("role", "");
-                                ui.post(() -> printBadge(name, role, false));
+                                String associated = job.optString("associated_to", "");
+                                ui.post(() -> printBadge(name, role, associated, false));
                             }
                         }
                     }
@@ -191,7 +193,7 @@ public class MainActivity extends Activity {
         requestPrinterPermissions();
         refreshStatus();
         loadTemplate();
-        updatePreview(getString(R.string.test_name), "FOUNDER");
+        updatePreview(getString(R.string.test_name), "FOUNDER", "STUDIOK");
         handleInternalAction(getIntent());
 
         // Always poll the website for print jobs while this app is open
@@ -202,7 +204,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         loadTemplate();
-        updatePreview(getString(R.string.test_name), "FOUNDER");
+        updatePreview(getString(R.string.test_name), "FOUNDER", "STUDIOK");
         refreshStatus();
     }
 
@@ -299,7 +301,7 @@ public class MainActivity extends Activity {
         if (SettingsActivity.ACTION_CONNECT.equals(action)) {
             startConnect(true);
         } else if (SettingsActivity.ACTION_TEST.equals(action)) {
-            printBadge(getString(R.string.test_name), "Founder", true);
+            printBadge(getString(R.string.test_name), "Founder", "StudioK", true);
         } else if (SettingsActivity.ACTION_DISCONNECT.equals(action)) {
             disconnectPrinter();
         }
@@ -482,6 +484,7 @@ public class MainActivity extends Activity {
     private void disconnectPrinter() {
         pendingGuestName = null;
         pendingRole = null;
+        pendingAssociated = null;
         pendingTest = false;
         connecting = false;
         if (api != null) {
@@ -501,29 +504,31 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void printBadge(String rawName, String rawRole, boolean test) {
+    private void printBadge(String rawName, String rawRole, String rawAssociated, boolean test) {
         String name = normalizeName(rawName, test);
         String role = normalizeRole(rawRole, test);
+        String associated = normalizeAssociated(rawAssociated, test);
 
         // Only skip true duplicates after a successful submit (never block pending retries)
-        String printKey = name + "|" + role + "|" + (test ? "t" : "p");
+        String printKey = name + "|" + role + "|" + associated + "|" + (test ? "t" : "p");
         long now = System.currentTimeMillis();
         if (printKey.equals(lastPrintKey) && (now - lastPrintAtMs) < 8000) {
             return;
         }
 
-        updatePreview(name, role);
+        updatePreview(name, role, associated);
 
         if (!isPrinterConnected()) {
             pendingGuestName = name;
             pendingRole = role;
+            pendingAssociated = associated;
             pendingTest = test;
             startConnect(savedPrinter() == null);
             return;
         }
 
         showBusy(getString(R.string.status_printing));
-        boolean submitted = drawAndCommit(name, role);
+        boolean submitted = drawAndCommit(name, role, associated);
         if (!submitted) {
             onPrintFailed();
             return;
@@ -541,21 +546,25 @@ public class MainActivity extends Activity {
             pendingTest = false;
             String name = pendingGuestName;
             String role = pendingRole;
+            String associated = pendingAssociated;
             pendingGuestName = null;
             pendingRole = null;
-            printBadge(name, role, true);
+            pendingAssociated = null;
+            printBadge(name, role, associated, true);
             return;
         }
         if (!TextUtils.isEmpty(pendingGuestName)) {
             String name = pendingGuestName;
             String role = pendingRole;
+            String associated = pendingAssociated;
             pendingGuestName = null;
             pendingRole = null;
-            printBadge(name, role, false);
+            pendingAssociated = null;
+            printBadge(name, role, associated, false);
         }
     }
 
-    private boolean drawAndCommit(String name, String role) {
+    private boolean drawAndCommit(String name, String role, String associated) {
         api.startJob(LABEL_WIDTH_MM, LABEL_HEIGHT_MM, 0);
 
         if (logoMark != null) {
@@ -565,12 +574,19 @@ public class MainActivity extends Activity {
         api.setItemHorizontalAlignment(0);
         api.setItemVerticalAlignment(0);
 
-        // Use saved font or auto-size based on name length
+        // Name on top
         double nameFontMm = tplName.fontMm > 0 ? tplName.fontMm : nameFontMm(name);
         api.drawTextRegular(name, tplName.xMm, tplName.yMm, tplName.wMm, tplName.hMm, nameFontMm, 1);
 
-        double roleFontMm = tplRole.fontMm > 0 ? tplRole.fontMm : 3.0;
-        api.drawTextRegular(role, tplRole.xMm, tplRole.yMm, tplRole.wMm, tplRole.hMm, roleFontMm, 0);
+        // Role below name
+        double roleFontMm = tplRole.fontMm > 0 ? tplRole.fontMm : 2.8;
+        api.drawTextRegular(role, tplRole.xMm, tplRole.yMm, tplRole.wMm, Math.min(tplRole.hMm, 4.5), roleFontMm, 0);
+
+        // Associated-to below role
+        if (!TextUtils.isEmpty(associated)) {
+            double assocY = Math.min(tplRole.yMm + 4.8, LABEL_HEIGHT_MM - 4.5);
+            api.drawTextRegular(associated, tplRole.xMm, assocY, tplRole.wMm, 4.0, 2.3, 0);
+        }
 
         return api.commitJob();
     }
@@ -592,7 +608,7 @@ public class MainActivity extends Activity {
         return 3.0;
     }
 
-    private void updatePreview(String name, String role) {
+    private void updatePreview(String name, String role, String associated) {
         if (previewImage == null || logoMark == null) return;
 
         int previewW = 400;
@@ -619,9 +635,16 @@ public class MainActivity extends Activity {
         canvas.drawText(name, tplName.xMm * sx, tplName.yMm * sy + (float)(nf * sy), paint);
 
         // Role
-        double rf = tplRole.fontMm > 0 ? tplRole.fontMm : 3.0;
+        double rf = tplRole.fontMm > 0 ? tplRole.fontMm : 2.8;
         paint.setTextSize((float) (rf * sy));
         canvas.drawText(role, tplRole.xMm * sx, tplRole.yMm * sy + (float)(rf * sy), paint);
+
+        // Associated to
+        if (!TextUtils.isEmpty(associated)) {
+            paint.setTextSize(2.3f * sy);
+            float assocY = (float) Math.min(tplRole.yMm + 4.8, LABEL_HEIGHT_MM - 1.5);
+            canvas.drawText(associated, tplRole.xMm * sx, assocY * sy + 2.3f * sy, paint);
+        }
 
         previewImage.setImageBitmap(preview);
     }
@@ -654,6 +677,14 @@ public class MainActivity extends Activity {
         String value = rawRole == null ? "" : rawRole.trim();
         if (TextUtils.isEmpty(value)) {
             return test ? "FOUNDER" : "";
+        }
+        return value.toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeAssociated(String rawAssociated, boolean test) {
+        String value = rawAssociated == null ? "" : rawAssociated.trim();
+        if (TextUtils.isEmpty(value)) {
+            return test ? "STUDIOK" : "";
         }
         return value.toUpperCase(Locale.ROOT);
     }

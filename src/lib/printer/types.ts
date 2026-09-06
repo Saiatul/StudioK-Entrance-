@@ -55,6 +55,7 @@ export type PrintableGuest = {
   id: number;
   name: string;
   role?: string;
+  associated_to?: string;
 };
 
 export type PrinterStatus = {

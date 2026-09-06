@@ -165,7 +165,11 @@ class PrintService {
 
   async printGuestBadge(guest: PrintableGuest): Promise<void> {
     // Always use the companion queue — do not depend on adapter dropdown
-    await this.lpapi.printGuest(guest.name, guest.role);
+    await this.lpapi.printGuest(
+      guest.name,
+      guest.role,
+      guest.associated_to,
+    );
     this.updateSettings({ adapterId: "lpapi" });
     this.notify();
   }

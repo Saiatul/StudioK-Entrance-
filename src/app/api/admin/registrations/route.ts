@@ -6,7 +6,7 @@ export async function GET() {
   await ensureRegistrationsSchema();
   const pool = getPool();
   const result = await pool.query(
-    `SELECT id, name, country_code, mobile, email, host, role, legal_accepted, registered_at
+    `SELECT id, name, country_code, mobile, email, host, role, associated_to, legal_accepted, registered_at
      FROM "Registrations"
      ORDER BY registered_at DESC`
   );

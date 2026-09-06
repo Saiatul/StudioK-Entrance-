@@ -21,12 +21,13 @@ type PrintPhase = "printing" | "printed" | "print-failed";
 const RESET_DELAY_MS = 6000;
 
 export function RegistrationForm() {
+  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [mobile, setMobile] = useState("");
-  const [email, setEmail] = useState("");
   const [host, setHost] = useState("");
   const [role, setRole] = useState("");
+  const [associatedTo, setAssociatedTo] = useState("");
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -46,12 +47,13 @@ export function RegistrationForm() {
   }, []);
 
   function resetForm() {
+    setEmail("");
     setName("");
     setCountry(DEFAULT_COUNTRY);
     setMobile("");
-    setEmail("");
     setHost("");
     setRole("");
+    setAssociatedTo("");
     setLegalAccepted(false);
     setErrors({});
     setSaved(null);
@@ -71,6 +73,7 @@ export function RegistrationForm() {
         id: registration.id,
         name: registration.name,
         role: registration.role,
+        associated_to: registration.associated_to,
       });
       setPrintPhase("printed");
       setPrintError("");
@@ -94,6 +97,7 @@ export function RegistrationForm() {
       email,
       host,
       role,
+      associated_to: associatedTo,
       legal_accepted: legalAccepted,
     });
 
@@ -172,6 +176,18 @@ export function RegistrationForm() {
     <>
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         <Field
+          id="email"
+          label="Email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="name@email.com"
+          value={email}
+          error={errors.email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+
+        <Field
           id="name"
           label="Name"
           value={name}
@@ -182,6 +198,15 @@ export function RegistrationForm() {
         />
 
         <RoleSelect value={role} onChange={setRole} error={errors.role} />
+
+        <Field
+          id="associated_to"
+          label="Associated to"
+          value={associatedTo}
+          placeholder="Company / organization"
+          error={errors.associated_to}
+          onChange={(event) => setAssociatedTo(event.target.value)}
+        />
 
         <div>
           <span className="field-label">Mobile number</span>
@@ -206,18 +231,6 @@ export function RegistrationForm() {
             <p className="mt-2 text-[15px] text-rose-300">{errors.mobile}</p>
           ) : null}
         </div>
-
-        <Field
-          id="email"
-          label="Email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder="name@email.com"
-          value={email}
-          error={errors.email}
-          onChange={(event) => setEmail(event.target.value)}
-        />
 
         <HostSelect value={host} onChange={setHost} error={errors.host} />
 

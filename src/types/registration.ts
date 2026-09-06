@@ -17,6 +17,7 @@ export type RegistrationInput = {
   email: string;
   host: string;
   role: string;
+  associated_to: string;
   legal_accepted: boolean;
 };
 
@@ -26,5 +27,15 @@ export type Registration = RegistrationInput & {
 };
 
 export type FieldErrors = Partial<
-  Record<"name" | "mobile" | "email" | "host" | "role" | "legal" | "form", string>
+  Record<
+    | "name"
+    | "mobile"
+    | "email"
+    | "host"
+    | "role"
+    | "associated_to"
+    | "legal"
+    | "form",
+    string
+  >
 >;

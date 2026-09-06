@@ -41,11 +41,11 @@ function wakeCompanion() {
 }
 
 /** Queue a print job on the server. Android app polls and prints once. */
-async function enqueueJob(name: string, role: string) {
+async function enqueueJob(name: string, role: string, associatedTo = "") {
   const response = await fetch("/api/print-queue", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, role }),
+    body: JSON.stringify({ name, role, associated_to: associatedTo }),
     cache: "no-store",
   });
 
@@ -93,15 +93,19 @@ export class LpapiCompanionAdapter implements PrinterAdapter {
     );
   }
 
-  async printGuest(name: string, role?: string): Promise<void> {
-    await enqueueJob(name, role ?? "");
+  async printGuest(
+    name: string,
+    role?: string,
+    associatedTo?: string,
+  ): Promise<void> {
+    await enqueueJob(name, role ?? "", associatedTo ?? "");
     wakeCompanion();
     this.state = "connected";
     writeReady(true);
   }
 
   async printTest(): Promise<void> {
-    await enqueueJob("TEST PRINT", "FOUNDER");
+    await enqueueJob("TEST PRINT", "FOUNDER", "STUDIOK");
     wakeCompanion();
     this.state = "connected";
     writeReady(true);

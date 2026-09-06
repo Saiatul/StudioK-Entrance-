@@ -17,6 +17,10 @@ export async function ensureRegistrationsSchema(): Promise<void> {
     ALTER TABLE ${TABLE}
     ADD COLUMN IF NOT EXISTS role TEXT;
   `);
+  await pool.query(`
+    ALTER TABLE ${TABLE}
+    ADD COLUMN IF NOT EXISTS associated_to TEXT;
+  `);
 
   schemaReady = true;
 }
@@ -29,6 +33,7 @@ function mapRow(row: {
   email: string;
   host: string;
   role?: string | null;
+  associated_to?: string | null;
   legal_accepted: boolean;
   registered_at: Date | string;
 }): Registration {
@@ -45,6 +50,7 @@ function mapRow(row: {
     email: row.email,
     host: row.host,
     role: row.role || "",
+    associated_to: row.associated_to || "",
     legal_accepted: row.legal_accepted,
     registered_at: registeredAt,
   };
@@ -59,11 +65,11 @@ export async function createRegistration(
   const result = await pool.query(
     `
       INSERT INTO ${TABLE}
-        (name, country_code, mobile, email, host, role, legal_accepted, registered_at)
+        (name, country_code, mobile, email, host, role, associated_to, legal_accepted, registered_at)
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
       RETURNING
-        id, name, country_code, mobile, email, host, role, legal_accepted, registered_at
+        id, name, country_code, mobile, email, host, role, associated_to, legal_accepted, registered_at
     `,
     [
       input.name,
@@ -72,6 +78,7 @@ export async function createRegistration(
       input.email,
       input.host,
       input.role,
+      input.associated_to,
       input.legal_accepted,
     ],
   );
@@ -87,7 +94,7 @@ export async function getRegistrationById(
   const pool = getPool();
   const result = await pool.query(
     `
-      SELECT id, name, country_code, mobile, email, host, role, legal_accepted, registered_at
+      SELECT id, name, country_code, mobile, email, host, role, associated_to, legal_accepted, registered_at
       FROM ${TABLE}
       WHERE id = $1
       LIMIT 1
@@ -109,7 +116,7 @@ export async function findRecentByMobile(
   const pool = getPool();
   const result = await pool.query(
     `
-      SELECT id, name, country_code, mobile, email, host, role, legal_accepted, registered_at
+      SELECT id, name, country_code, mobile, email, host, role, associated_to, legal_accepted, registered_at
       FROM ${TABLE}
       WHERE country_code = $1 AND mobile = $2
       ORDER BY registered_at DESC

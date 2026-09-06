@@ -8,6 +8,7 @@ import { packMonoBitmap } from "@/lib/printer/raster";
 export type LabelContent = {
   name: string;
   role?: string;
+  associated_to?: string;
 };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -117,7 +118,9 @@ export async function renderLabelRaster(
   const textWidth = width - textX - 8;
   const name = content.name.trim().toUpperCase() || "GUEST";
   const role = (content.role || "").trim().toUpperCase();
-  const nameHeight = role ? Math.round(height * 0.58) : height - 16;
+  const associated = (content.associated_to || "").trim().toUpperCase();
+  const hasMeta = Boolean(role || associated);
+  const nameHeight = hasMeta ? Math.round(height * 0.42) : height - 16;
   const fitted = fitName(ctx, name, textWidth, nameHeight);
 
   ctx.font = `700 ${fitted.fontSize}px Arial, Helvetica, sans-serif`;
@@ -126,13 +129,21 @@ export async function renderLabelRaster(
 
   const lineHeight = fitted.fontSize * 1.08;
   fitted.lines.forEach((line, index) => {
-    ctx.fillText(line, textX, 10 + index * lineHeight);
+    ctx.fillText(line, textX, 8 + index * lineHeight);
   });
 
   if (role) {
-    ctx.font = "600 18px Arial, Helvetica, sans-serif";
+    ctx.font = "600 16px Arial, Helvetica, sans-serif";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(role, textX, associated ? height - 28 : height - 12);
+  }
+
+  if (associated) {
+    ctx.font = "500 13px Arial, Helvetica, sans-serif";
     ctx.textBaseline = "bottom";
-    ctx.fillText(role, textX, height - 10);
+    const clipped =
+      associated.length > 22 ? `${associated.slice(0, 21)}…` : associated;
+    ctx.fillText(clipped, textX, height - 8);
   }
 
   const image = ctx.getImageData(0, 0, width, height);
@@ -150,5 +161,6 @@ export function renderTestLabelRaster(): Promise<RasterLabel> {
   return renderLabelRaster({
     name: "TEST PRINT",
     role: "Founder",
+    associated_to: "StudioK",
   });
 }

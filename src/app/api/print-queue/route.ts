@@ -7,6 +7,7 @@ export async function POST(req: NextRequest) {
     const job = await enqueuePrintJob(
       String(body.name ?? "GUEST"),
       String(body.role ?? ""),
+      String(body.associated_to ?? ""),
     );
     return NextResponse.json({ ok: true, job });
   } catch (error) {
@@ -22,7 +23,12 @@ export async function GET() {
   try {
     const jobs = await claimPrintJobs();
     return NextResponse.json({
-      jobs: jobs.map((j) => ({ name: j.name, role: j.role, id: j.id })),
+      jobs: jobs.map((j) => ({
+        name: j.name,
+        role: j.role,
+        associated_to: j.associated_to,
+        id: j.id,
+      })),
     });
   } catch (error) {
     console.error("print-queue GET failed", error);
